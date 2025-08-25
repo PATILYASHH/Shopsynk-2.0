@@ -4,14 +4,70 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shopsynk</title>
-    <script type="module" crossorigin src="/assets/index-BdI0Iuad.js"></script>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="Shopsynk">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Shopsynk">
+    <meta name="description" content="Complete supplier dues management system for businesses">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    
+    <!-- Android Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.svg">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#2563eb">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="Shopsynk - Supplier Management">
+    <meta property="og:description" content="Complete supplier dues management system for businesses">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://shopsynk.netlify.app">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Shopsynk - Supplier Management">
+    <meta name="twitter:description" content="Complete supplier dues management system for businesses">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
+    
+    <title>Shopsynk - Supplier Management</title>
+    <script type="module" crossorigin src="/assets/index-OSVmsfLS.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-DsmcgGc9.js">
     <link rel="modulepreload" crossorigin href="/assets/supabase-6T48ApRq.js">
-    <link rel="modulepreload" crossorigin href="/assets/ui-D37jTwe_.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-C03W4YIG.css">
-  </head>
+    <link rel="modulepreload" crossorigin href="/assets/ui-DtYMGZIt.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-BeqiuSCX.css">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
   <body>
     <div id="root"></div>
+    
+    <!-- PWA Installation Script -->
+    <script>
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration)
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError)
+            })
+        })
+      }
+    </script>
   </body>
 </html>

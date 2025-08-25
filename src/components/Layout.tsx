@@ -1,6 +1,8 @@
 import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import PWAInstallPrompt from './PWAInstallPrompt'
+import PWAUpdateNotification from './PWAUpdateNotification'
 import { 
   LogOut, 
   Home, 
@@ -133,6 +135,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
+
+      {/* PWA Components */}
+      <PWAInstallPrompt />
+      <PWAUpdateNotification />
     </div>
   )
 }
