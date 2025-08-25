@@ -1,4 +1,3 @@
-import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -10,6 +9,7 @@ import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
+import DataStorage from './pages/DataStorage'
 import Profile from './pages/Profile'
 
 function App() {
@@ -31,6 +31,7 @@ function App() {
                       <Route path="/suppliers/:id" element={<SupplierDetail />} />
                       <Route path="/transactions" element={<Transactions />} />
                       <Route path="/reports" element={<Reports />} />
+                      <Route path="/data-storage" element={<DataStorage />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

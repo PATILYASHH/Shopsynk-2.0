@@ -9,7 +9,8 @@ import {
   FileText, 
   User,
   Menu,
-  X
+  X,
+  HardDrive
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -36,6 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Suppliers', path: '/suppliers', icon: Users },
     { name: 'Transactions', path: '/transactions', icon: Receipt },
     { name: 'Reports', path: '/reports', icon: FileText },
+    { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
     { name: 'Profile', path: '/profile', icon: User },
   ]
 
