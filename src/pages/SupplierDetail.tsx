@@ -4,7 +4,6 @@ import { supabase, Supplier, Transaction } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { 
   ArrowLeft,
-  Plus,
   Phone,
   Mail,
   MapPin,
@@ -15,9 +14,7 @@ import {
   ArrowDownRight,
   Receipt,
   CreditCard,
-  ShoppingCart,
-  TrendingUp,
-  TrendingDown
+  ShoppingCart
 } from 'lucide-react'
 
 const SupplierDetail = () => {
@@ -35,6 +32,12 @@ const SupplierDetail = () => {
   const [purchaseDueDate, setPurchaseDueDate] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
   const [currentBalance, setCurrentBalance] = useState(0)
+  const [supplierStats, setSupplierStats] = useState({
+    totalPurchases: 0,
+    totalPaid: 0,
+    totalDue: 0,
+    transactionCount: 0
+  })
 
   useEffect(() => {
     if (id) {
@@ -69,16 +72,32 @@ const SupplierDetail = () => {
       setSupplier(supplierData)
       setTransactions(transactionsData || [])
 
-      // Calculate current balance
-      let balance = 0
+      // Calculate comprehensive statistics
+      let totalPurchases = 0
+      let totalPaid = 0
+      let currentDue = 0
+
       transactionsData?.forEach((transaction) => {
-        if (transaction.type === 'new_purchase' && !transaction.is_paid) {
-          balance += parseFloat(transaction.amount.toString())
+        const amount = parseFloat(transaction.amount.toString())
+        
+        if (transaction.type === 'new_purchase') {
+          totalPurchases += amount
+          if (!transaction.is_paid) {
+            currentDue += amount
+          }
         } else if (transaction.type === 'pay_due' || transaction.type === 'settle_bill') {
-          balance -= parseFloat(transaction.amount.toString())
+          totalPaid += amount
+          currentDue -= amount
         }
       })
-      setCurrentBalance(Math.max(0, balance))
+
+      setCurrentBalance(Math.max(0, currentDue))
+      setSupplierStats({
+        totalPurchases,
+        totalPaid,
+        totalDue: Math.max(0, currentDue),
+        transactionCount: transactionsData?.length || 0
+      })
     } catch (error) {
       console.error('Error fetching supplier data:', error)
     } finally {
@@ -252,6 +271,63 @@ const SupplierDetail = () => {
         </div>
       </div>
 
+      {/* Enhanced Statistics Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Purchases */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Purchases</p>
+              <p className="text-2xl font-bold text-blue-600">{formatCurrency(supplierStats.totalPurchases)}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <ShoppingCart className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Paid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Paid</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(supplierStats.totalPaid)}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Outstanding Due */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Outstanding Due</p>
+              <p className={`text-2xl font-bold ${supplierStats.totalDue > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                {formatCurrency(supplierStats.totalDue)}
+              </p>
+            </div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${supplierStats.totalDue > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
+              <DollarSign className={`h-6 w-6 ${supplierStats.totalDue > 0 ? 'text-red-600' : 'text-gray-400'}`} />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Transactions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+              <p className="text-2xl font-bold text-gray-900">{supplierStats.transactionCount}</p>
+            </div>
+            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+              <Receipt className="h-6 w-6 text-gray-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Supplier Info & Balance */}
         <div className="lg:col-span-1 space-y-6">
@@ -291,49 +367,39 @@ const SupplierDetail = () => {
             </div>
           </div>
 
-          {/* Current Balance */}
+          {/* Payment Status Overview */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Current Balance</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Payment Status</h3>
               <DollarSign className="h-5 w-5 text-gray-400" />
             </div>
-            <div className="text-center">
-              <p className={`text-3xl font-bold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                {formatCurrency(currentBalance)}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                {currentBalance > 0 ? 'Outstanding Amount' : 'All Settled'}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Total Transactions</span>
-                <span className="font-medium">{transactions.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Total Purchases</span>
-                <span className="font-medium text-red-600">
-                  {formatCurrency(
-                    transactions
-                      .filter(t => t.type === 'new_purchase')
-                      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0)
-                  )}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Payment Rate</span>
+                <span className="text-sm font-medium">
+                  {supplierStats.totalPurchases > 0 
+                    ? `${Math.round((supplierStats.totalPaid / supplierStats.totalPurchases) * 100)}%`
+                    : '0%'
+                  }
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Total Payments</span>
-                <span className="font-medium text-green-600">
-                  {formatCurrency(
-                    transactions
-                      .filter(t => t.type === 'pay_due' || t.type === 'settle_bill')
-                      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0)
-                  )}
-                </span>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: supplierStats.totalPurchases > 0 
+                      ? `${Math.min((supplierStats.totalPaid / supplierStats.totalPurchases) * 100, 100)}%`
+                      : '0%'
+                  }}
+                ></div>
+              </div>
+              <div className="text-center pt-2">
+                <p className={`text-2xl font-bold ${supplierStats.totalDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {supplierStats.totalDue > 0 ? formatCurrency(supplierStats.totalDue) : 'All Clear!'}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {supplierStats.totalDue > 0 ? 'Outstanding Balance' : 'No pending dues'}
+                </p>
               </div>
             </div>
           </div>
@@ -341,13 +407,30 @@ const SupplierDetail = () => {
 
         {/* Transaction History */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
-              <Receipt className="h-5 w-5 text-gray-400" />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors flex items-center"
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Pay Due
+                  </button>
+                  <button
+                    onClick={() => setShowPurchaseModal(true)}
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors flex items-center"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    New Purchase
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {transactions.length > 0 ? (
+            <div className="p-6">{transactions.length > 0 ? (
               <div className="space-y-4">
                 {transactions.map((transaction) => (
                   <div key={transaction.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -393,6 +476,7 @@ const SupplierDetail = () => {
                 <p className="text-gray-500">No transactions yet with this supplier</p>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
