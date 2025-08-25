@@ -14,6 +14,7 @@ export interface Supplier {
   phone?: string
   email?: string
   address?: string
+  added_by_owner_id?: string
   created_at: string
   updated_at: string
 }
@@ -22,6 +23,7 @@ export interface Transaction {
   id: string
   user_id: string
   supplier_id: string
+  owner_id?: string
   type: 'pay_due' | 'settle_bill' | 'new_purchase'
   amount: number
   description: string
@@ -30,6 +32,9 @@ export interface Transaction {
   created_at: string
   updated_at: string
   supplier?: Supplier
+  owner?: {
+    owner_name: string
+  }
 }
 
 export interface User {

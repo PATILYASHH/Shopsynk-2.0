@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase, Transaction, Supplier } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
 import { 
   Plus, 
   Search, 
@@ -9,15 +10,15 @@ import {
   ArrowDownRight,
   Receipt,
   Calendar,
-  DollarSign
+  DollarSign,
+  Users
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 
 const Transactions = () => {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -29,7 +30,8 @@ const Transactions = () => {
     amount: '',
     description: '',
     due_date: '',
-    is_paid: false
+    is_paid: false,
+    owner_id: ''
   })
 
   useEffect(() => {
@@ -40,12 +42,13 @@ const Transactions = () => {
     if (!user) return
 
     try {
-      // Fetch transactions with supplier info
+      // Fetch transactions with supplier and owner info
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select(`
           *,
-          supplier:suppliers(name)
+          supplier:suppliers(name),
+          owner:business_owners(owner_name)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -61,8 +64,13 @@ const Transactions = () => {
 
       if (suppliersError) throw suppliersError
 
+      // Fetch business owners for dropdown
+      const businessOwnersService = BusinessOwnersService.getInstance()
+      const owners = await businessOwnersService.getBusinessOwners(user.id)
+      
       setTransactions(transactionsData || [])
       setSuppliers(suppliersData || [])
+      setBusinessOwners(owners || [])
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -79,7 +87,8 @@ const Transactions = () => {
         ...formData,
         user_id: user.id,
         amount: parseFloat(formData.amount),
-        due_date: formData.due_date || null
+        due_date: formData.due_date || null,
+        owner_id: formData.owner_id || null
       }
 
       const { error } = await supabase
@@ -102,7 +111,8 @@ const Transactions = () => {
       amount: '',
       description: '',
       due_date: '',
-      is_paid: false
+      is_paid: false,
+      owner_id: ''
     })
     setShowAddModal(false)
   }
@@ -266,6 +276,12 @@ const Transactions = () => {
                         )}
                       </div>
                       <p className="text-gray-600 mt-1">{transaction.description}</p>
+                      {transaction.owner?.owner_name && (
+                        <p className="text-sm text-blue-600 mt-1">
+                          {transaction.type === 'new_purchase' ? 'Purchased by: ' : 'Paid by: '}
+                          {transaction.owner.owner_name}
+                        </p>
+                      )}
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                         <span className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
@@ -388,6 +404,25 @@ const Transactions = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter description (optional)"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Users className="inline h-4 w-4 mr-1" />
+                  Handled By
+                </label>
+                <select
+                  value={formData.owner_id}
+                  onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select who handled this transaction</option>
+                  {businessOwners.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.owner_name} {owner.is_primary && '(Primary)'} - {owner.role}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {formData.type === 'new_purchase' && (

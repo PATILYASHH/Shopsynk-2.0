@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase, Supplier, Transaction } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
 import { 
   ArrowLeft,
   Phone,
@@ -23,11 +24,14 @@ const SupplierDetail = () => {
   const navigate = useNavigate()
   const [supplier, setSupplier] = useState<Supplier | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentOwnerId, setPaymentOwnerId] = useState('')
   const [purchaseAmount, setPurchaseAmount] = useState('')
+  const [purchaseOwnerId, setPurchaseOwnerId] = useState('')
   const [purchaseDescription, setPurchaseDescription] = useState('')
   const [purchaseDueDate, setPurchaseDueDate] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
@@ -59,18 +63,26 @@ const SupplierDetail = () => {
 
       if (supplierError) throw supplierError
 
-      // Fetch transactions for this supplier
+      // Fetch transactions for this supplier with owner info
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
-        .select('*')
+        .select(`
+          *,
+          owner:business_owners(owner_name)
+        `)
         .eq('supplier_id', id)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (transactionsError) throw transactionsError
 
+      // Fetch business owners for dropdowns
+      const businessOwnersService = BusinessOwnersService.getInstance()
+      const owners = await businessOwnersService.getBusinessOwners(user.id)
+
       setSupplier(supplierData)
       setTransactions(transactionsData || [])
+      setBusinessOwners(owners || [])
 
       // Calculate comprehensive statistics
       let totalPurchases = 0
@@ -118,7 +130,8 @@ const SupplierDetail = () => {
           type: 'pay_due',
           amount: parseFloat(paymentAmount),
           description: paymentDescription || 'Payment made',
-          is_paid: true
+          is_paid: true,
+          owner_id: paymentOwnerId || null
         }])
 
       if (error) throw error
@@ -126,6 +139,7 @@ const SupplierDetail = () => {
       await fetchSupplierData()
       setShowPaymentModal(false)
       setPaymentAmount('')
+      setPaymentOwnerId('')
       setPaymentDescription('')
     } catch (error) {
       console.error('Error processing payment:', error)
@@ -146,7 +160,8 @@ const SupplierDetail = () => {
           amount: parseFloat(purchaseAmount),
           description: purchaseDescription || 'New purchase',
           due_date: purchaseDueDate || null,
-          is_paid: false
+          is_paid: false,
+          owner_id: purchaseOwnerId || null
         }])
 
       if (error) throw error
@@ -154,6 +169,7 @@ const SupplierDetail = () => {
       await fetchSupplierData()
       setShowPurchaseModal(false)
       setPurchaseAmount('')
+      setPurchaseOwnerId('')
       setPurchaseDescription('')
       setPurchaseDueDate('')
     } catch (error) {
@@ -449,6 +465,12 @@ const SupplierDetail = () => {
                             )}
                           </div>
                           <p className="text-gray-600 text-sm">{transaction.description}</p>
+                          {transaction.owner?.owner_name && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              {transaction.type === 'new_purchase' ? 'Purchased by: ' : 'Paid by: '}
+                              {transaction.owner.owner_name}
+                            </p>
+                          )}
                           <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
                             <span className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1" />
@@ -521,6 +543,24 @@ const SupplierDetail = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Made By
+                </label>
+                <select
+                  value={paymentOwnerId}
+                  onChange={(e) => setPaymentOwnerId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Select who made this payment</option>
+                  {businessOwners.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.owner_name} {owner.is_primary && '(Primary)'} - {owner.role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-700">
                   Current outstanding: <span className="font-medium">{formatCurrency(currentBalance)}</span>
@@ -585,6 +625,24 @@ const SupplierDetail = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Purchase description (optional)"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Purchase Made By
+                </label>
+                <select
+                  value={purchaseOwnerId}
+                  onChange={(e) => setPurchaseOwnerId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select who made this purchase</option>
+                  {businessOwners.map((owner) => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.owner_name} {owner.is_primary && '(Primary)'} - {owner.role}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
