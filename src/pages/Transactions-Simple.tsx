@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase, Transaction, Supplier } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
@@ -211,7 +211,7 @@ const Transactions = () => {
                       <p className={`font-semibold text-lg ${
                         transaction.type === 'new_purchase' ? 'text-red-600' : 'text-green-600'
                       }`}>
-                        {transaction.type === 'new_purchase' ? '+' : '-'}₹{Math.round(transaction.amount).toLocaleString()}
+                        {transaction.type === 'new_purchase' ? '+' : '-'}₹{Math.round(parseFloat(transaction.amount)).toLocaleString()}
                       </p>
                     </div>
                     
@@ -228,7 +228,8 @@ const Transactions = () => {
                       </div>
                       {transaction.owner?.owner_name && (
                         <span className="text-blue-600 font-medium">
-                          by {transaction.owner.owner_name}
+                          {transaction.type === 'new_purchase' ? 'by ' : 'by '}
+                          {transaction.owner.owner_name}
                         </span>
                       )}
                     </div>

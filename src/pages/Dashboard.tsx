@@ -183,23 +183,6 @@ const Dashboard = () => {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'new_purchase':
@@ -215,7 +198,7 @@ const Dashboard = () => {
   const getTransactionTypeLabel = (type: string) => {
     switch (type) {
       case 'new_purchase':
-        return 'New Purchase'
+        return 'Purchase'
       case 'pay_due':
         return 'Payment'
       case 'settle_bill':
@@ -234,154 +217,129 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Simplified for mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's your business overview.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 text-sm">Your business overview</p>
         </div>
         <button
-          onClick={() => navigate('/transactions/new')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          onClick={() => navigate('/transactions')}
+          className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium flex items-center justify-center hover:bg-blue-700 w-full sm:w-auto"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Transaction
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Outstanding</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(stats.totalDues)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <DollarSign className="h-6 w-6 text-red-600" />
-            </div>
+      {/* Stats Cards - Mobile-first grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="text-center">
+            <DollarSign className="h-6 w-6 text-red-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 mb-1">Outstanding</p>
+            <p className="text-lg font-bold text-red-600">₹{Math.round(stats.totalDues).toLocaleString()}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Suppliers</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalSuppliers}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Users className="h-6 w-6 text-blue-600" />
-            </div>
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="text-center">
+            <Users className="h-6 w-6 text-blue-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 mb-1">Suppliers</p>
+            <p className="text-lg font-bold text-blue-600">{stats.totalSuppliers}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Transactions</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalTransactions}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <Receipt className="h-6 w-6 text-green-600" />
-            </div>
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="text-center">
+            <Receipt className="h-6 w-6 text-green-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 mb-1">Transactions</p>
+            <p className="text-lg font-bold text-green-600">{stats.totalTransactions}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending Payments</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pendingPayments}</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-yellow-600" />
-            </div>
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="text-center">
+            <AlertTriangle className="h-6 w-6 text-orange-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 mb-1">Pending</p>
+            <p className="text-lg font-bold text-orange-600">{stats.pendingPayments}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Transactions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
+      {/* Single column layout for mobile, two columns for larger screens */}
+      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+        {/* Recent Transactions - Simplified */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
             <button
               onClick={() => navigate('/transactions')}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              className="text-blue-600 text-sm font-medium"
             >
               View All
             </button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {stats.recentTransactions.length > 0 ? (
-              stats.recentTransactions.map((transaction) => (
+              stats.recentTransactions.slice(0, 4).map((transaction) => (
                 <div 
                   key={transaction.id} 
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/suppliers/${transaction.supplier_id}`)}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
                     {getTransactionIcon(transaction.type)}
-                    <div>
-                      <p className="font-medium text-gray-900">{transaction.supplier?.name}</p>
-                      <p className="text-sm text-gray-600">{getTransactionTypeLabel(transaction.type)}</p>
-                      {transaction.owner?.owner_name && (
-                        <p className="text-xs text-blue-600">
-                          {transaction.type === 'new_purchase' ? 'Purchased by: ' : 'Paid by: '}
-                          {transaction.owner.owner_name}
-                        </p>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{transaction.supplier?.name}</p>
+                      <p className="text-sm text-gray-500">{getTransactionTypeLabel(transaction.type)}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className={`font-medium ${
                       transaction.type === 'new_purchase' ? 'text-red-600' : 'text-green-600'
                     }`}>
-                      {transaction.type === 'new_purchase' ? '+' : '-'}
-                      {formatCurrency(parseFloat(transaction.amount))}
+                      {transaction.type === 'new_purchase' ? '+' : '-'}₹{Math.round(parseFloat(transaction.amount)).toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-500">{formatDate(transaction.created_at)}</p>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">No transactions yet</p>
+              <p className="text-gray-500 text-center py-6 text-sm">No transactions yet</p>
             )}
           </div>
         </div>
 
-        {/* Outstanding Payments */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Outstanding Payments</h2>
+        {/* Outstanding Payments - Simplified */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900">Payments Due</h2>
             <AlertTriangle className="h-5 w-5 text-orange-400" />
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {stats.upcomingDues.length > 0 ? (
-              stats.upcomingDues.map((payment) => (
+              stats.upcomingDues.slice(0, 4).map((payment) => (
                 <div 
                   key={payment.id} 
-                  className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100"
                   onClick={() => navigate(`/suppliers/${payment.supplier_id}`)}
                 >
-                  <div>
-                    <p className="font-medium text-gray-900">{payment.supplier?.name}</p>
-                    <p className="text-sm text-gray-600">{payment.description}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{payment.supplier?.name}</p>
+                    <p className="text-sm text-gray-500">Outstanding balance</p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-red-600">
-                      {formatCurrency(parseFloat(payment.amount))}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {payment.due_date ? `Due: ${formatDate(payment.due_date)}` : 'No due date'}
+                      ₹{Math.round(parseFloat(payment.amount)).toLocaleString()}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">No outstanding payments</p>
+              <div className="text-center py-6">
+                <AlertTriangle className="h-8 w-8 text-green-500 mx-auto mb-2 opacity-50" />
+                <p className="text-green-600 text-sm font-medium">All payments up to date!</p>
+              </div>
             )}
           </div>
         </div>

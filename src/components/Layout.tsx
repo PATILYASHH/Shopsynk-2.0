@@ -40,7 +40,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Transactions', path: '/transactions', icon: Receipt },
     { name: 'Reports', path: '/reports', icon: FileText },
     { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
-    { name: 'Profile', path: '/profile', icon: User },
   ]
 
   const isActivePath = (path: string) => {
@@ -98,25 +97,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* User info and sign out */}
           <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate('/profile')}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors mb-3"
+            >
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <User className="h-4 w-4 text-blue-600" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-medium text-gray-900 truncate">
+                    Profile Settings
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
                     {user?.email}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleSignOut}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Sign out"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center justify-center p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </button>
           </div>
         </div>
       </div>
