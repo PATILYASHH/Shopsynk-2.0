@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase, Supplier, Transaction } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -52,12 +52,48 @@ const SupplierDetail = () => {
     totalDue: 0,
     transactionCount: 0
   })
+  const [showProfile, setShowProfile] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean
+    x: number
+    y: number
+    transaction: Transaction | null
+  }>({ show: false, x: 0, y: 0, transaction: null })
+  const [showEditTransactionModal, setShowEditTransactionModal] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [editTransactionAmount, setEditTransactionAmount] = useState('')
+  const [editTransactionDescription, setEditTransactionDescription] = useState('')
+
+  // Utility functions for local storage
+  const saveLastSelectedOwner = (ownerId: string) => {
+    localStorage.setItem('shopsynk_last_selected_owner', ownerId)
+  }
+
+  const getLastSelectedOwner = () => {
+    return localStorage.getItem('shopsynk_last_selected_owner') || ''
+  }
 
   useEffect(() => {
     if (id) {
       fetchSupplierData()
     }
   }, [id, user])
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.show) {
+        closeContextMenu()
+      }
+    }
+
+    if (contextMenu.show) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [contextMenu.show])
 
   const fetchSupplierData = async () => {
     if (!user || !id) return
@@ -94,6 +130,13 @@ const SupplierDetail = () => {
       setTransactions(transactionsData || [])
       setBusinessOwners(owners || [])
 
+      // Set default owner from local storage if available
+      const lastSelectedOwner = getLastSelectedOwner()
+      if (lastSelectedOwner && owners && owners.some(owner => owner.id === lastSelectedOwner)) {
+        setPaymentOwnerId(lastSelectedOwner)
+        setPurchaseOwnerId(lastSelectedOwner)
+      }
+
       // Calculate comprehensive statistics
       let totalPurchases = 0
       let totalPaid = 0
@@ -129,9 +172,12 @@ const SupplierDetail = () => {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !id || !paymentAmount) return
+    if (!user || !id || !paymentAmount || !paymentOwnerId) return
 
     try {
+      // Save the selected owner to local storage for future use
+      saveLastSelectedOwner(paymentOwnerId)
+
       const { error } = await supabase
         .from('transactions')
         .insert([{
@@ -141,7 +187,7 @@ const SupplierDetail = () => {
           amount: parseFloat(paymentAmount),
           description: paymentDescription || 'Payment made',
           is_paid: true,
-          owner_id: paymentOwnerId || null
+          owner_id: paymentOwnerId
         }])
 
       if (error) throw error
@@ -149,8 +195,8 @@ const SupplierDetail = () => {
       await fetchSupplierData()
       setShowPaymentModal(false)
       setPaymentAmount('')
-      setPaymentOwnerId('')
       setPaymentDescription('')
+      // Keep the owner selected for next transaction
     } catch (error) {
       console.error('Error processing payment:', error)
     }
@@ -158,9 +204,12 @@ const SupplierDetail = () => {
 
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !id || !purchaseAmount) return
+    if (!user || !id || !purchaseAmount || !purchaseOwnerId) return
 
     try {
+      // Save the selected owner to local storage for future use
+      saveLastSelectedOwner(purchaseOwnerId)
+
       const { error } = await supabase
         .from('transactions')
         .insert([{
@@ -171,7 +220,7 @@ const SupplierDetail = () => {
           description: purchaseDescription || 'New purchase',
           due_date: purchaseDueDate || null,
           is_paid: false,
-          owner_id: purchaseOwnerId || null
+          owner_id: purchaseOwnerId
         }])
 
       if (error) throw error
@@ -179,9 +228,9 @@ const SupplierDetail = () => {
       await fetchSupplierData()
       setShowPurchaseModal(false)
       setPurchaseAmount('')
-      setPurchaseOwnerId('')
       setPurchaseDescription('')
       setPurchaseDueDate('')
+      // Keep the owner selected for next transaction
     } catch (error) {
       console.error('Error adding purchase:', error)
     }
@@ -252,6 +301,156 @@ const SupplierDetail = () => {
     }
   }
 
+  const openPaymentModal = () => {
+    // Ensure we have the latest default owner when opening
+    const lastSelectedOwner = getLastSelectedOwner()
+    if (lastSelectedOwner && businessOwners.some(owner => owner.id === lastSelectedOwner)) {
+      setPaymentOwnerId(lastSelectedOwner)
+    }
+    setShowPaymentModal(true)
+  }
+
+  const openPurchaseModal = () => {
+    // Ensure we have the latest default owner when opening
+    const lastSelectedOwner = getLastSelectedOwner()
+    if (lastSelectedOwner && businessOwners.some(owner => owner.id === lastSelectedOwner)) {
+      setPurchaseOwnerId(lastSelectedOwner)
+    }
+    setShowPurchaseModal(true)
+  }
+
+  // Context menu handlers
+  const handleContextMenu = (e: React.MouseEvent, transaction: Transaction) => {
+    e.preventDefault()
+    setContextMenu({
+      show: true,
+      x: e.clientX,
+      y: e.clientY,
+      transaction
+    })
+  }
+
+  const handleLongPress = (transaction: Transaction) => {
+    // For mobile long press, show context menu at center of screen
+    setContextMenu({
+      show: true,
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      transaction
+    })
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu({ show: false, x: 0, y: 0, transaction: null })
+  }
+
+  const editTransaction = () => {
+    if (contextMenu.transaction) {
+      setEditingTransaction(contextMenu.transaction)
+      setEditTransactionAmount(contextMenu.transaction.amount.toString())
+      setEditTransactionDescription(contextMenu.transaction.description || '')
+      setShowEditTransactionModal(true)
+      closeContextMenu()
+    }
+  }
+
+  const deleteTransaction = async () => {
+    if (!contextMenu.transaction || !user) return
+
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete this transaction? This action cannot be undone.'
+    )
+
+    if (!confirmDelete) {
+      closeContextMenu()
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', contextMenu.transaction.id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      await fetchSupplierData()
+      closeContextMenu()
+    } catch (error) {
+      console.error('Error deleting transaction:', error)
+    }
+  }
+
+  // Custom hook for long press
+  const useLongPress = (onLongPress: () => void, delay = 500) => {
+    const [longPressTriggered, setLongPressTriggered] = useState(false)
+    const timeout = useRef<NodeJS.Timeout>()
+    const target = useRef<EventTarget>()
+
+    const start = useCallback(
+      (event: React.TouchEvent | React.MouseEvent) => {
+        if (event.type === 'mousedown' && (event as React.MouseEvent).button !== 0) {
+          return
+        }
+
+        timeout.current = setTimeout(() => {
+          onLongPress()
+          setLongPressTriggered(true)
+        }, delay)
+
+        target.current = event.target
+      },
+      [onLongPress, delay]
+    )
+
+    const clear = useCallback(
+      (event: React.TouchEvent | React.MouseEvent) => {
+        timeout.current && clearTimeout(timeout.current)
+        if (longPressTriggered) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        setLongPressTriggered(false)
+      },
+      [longPressTriggered]
+    )
+
+    return {
+      onMouseDown: (e: React.MouseEvent) => start(e),
+      onTouchStart: (e: React.TouchEvent) => start(e),
+      onMouseUp: (e: React.MouseEvent) => clear(e),
+      onTouchEnd: (e: React.TouchEvent) => clear(e),
+      onMouseLeave: (e: React.MouseEvent) => clear(e)
+    }
+  }
+
+  const handleEditTransaction = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTransaction || !user || !editTransactionAmount) return
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          amount: parseFloat(editTransactionAmount),
+          description: editTransactionDescription || null
+        })
+        .eq('id', editingTransaction.id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      await fetchSupplierData()
+      setShowEditTransactionModal(false)
+      setEditingTransaction(null)
+      setEditTransactionAmount('')
+      setEditTransactionDescription('')
+    } catch (error) {
+      console.error('Error updating transaction:', error)
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -306,6 +505,12 @@ const SupplierDetail = () => {
     }
   }
 
+  const handleCall = () => {
+    if (supplier?.phone) {
+      window.location.href = `tel:${supplier.phone}`
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -328,113 +533,258 @@ const SupplierDetail = () => {
     )
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate('/suppliers')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{supplier.name}</h1>
-            <p className="text-gray-600 mt-1">Supplier Details & Transaction History</p>
+  // Transaction Item Component (to properly use hooks)
+  const TransactionItem = ({ transaction }: { transaction: any }) => {
+    const longPressProps = useLongPress(() => handleLongPress(transaction))
+    
+    return (
+      <div 
+        key={transaction.id} 
+        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer select-none"
+        onContextMenu={(e) => handleContextMenu(e, transaction)}
+        {...longPressProps}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {getTransactionIcon(transaction.type)}
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-medium text-gray-900">
+                  {getTransactionTypeLabel(transaction.type)}
+                </span>
+                {!transaction.is_paid && transaction.type === 'new_purchase' && (
+                  <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                    Unpaid
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-600 text-sm">{transaction.description}</p>
+              {transaction.owner?.owner_name && (
+                <p className="text-xs text-blue-600 mt-1">
+                  {transaction.type === 'new_purchase' ? 'Purchased by: ' : 'Paid by: '}
+                  {transaction.owner.owner_name}
+                </p>
+              )}
+              <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                <span className="flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  {formatDate(transaction.created_at)}
+                </span>
+                {transaction.due_date && (
+                  <span>Due: {formatDate(transaction.due_date)}</span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          <div className="flex space-x-2">
-            <button
-              onClick={openEditModal}
-              className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-              title="Edit Supplier"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </button>
-            <button
-              onClick={handleDeleteSupplier}
-              className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
-              title="Delete Supplier"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </button>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Pay Due
-            </button>
-            <button
-              onClick={() => setShowPurchaseModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              New Purchase
-            </button>
+          <div className="text-right">
+            <p className={`text-lg font-semibold ${getTransactionColor(transaction.type)}`}>
+              {transaction.type === 'new_purchase' ? '+' : '-'}
+              {formatCurrency(parseFloat(transaction.amount.toString()))}
+            </p>
           </div>
         </div>
       </div>
+    )
+  }
 
-      {/* Enhanced Statistics Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Purchases */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Purchases</p>
-              <p className="text-2xl font-bold text-blue-600">{formatCurrency(supplierStats.totalPurchases)}</p>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* WhatsApp-style Header */}
+      <div className="bg-white shadow-sm sticky top-0 z-30">
+        <div className="flex items-center px-4 py-3">
+          <button
+            onClick={() => navigate('/suppliers')}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-2"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </button>
+          
+          {/* Clickable Profile Section */}
+          <button
+            onClick={() => setShowProfile(true)}
+            className="flex items-center space-x-3 flex-1 text-left hover:bg-gray-50 p-2 rounded-lg transition-colors"
+          >
+            {/* Profile Avatar */}
+            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+              {supplier.name.charAt(0).toUpperCase()}
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Total Paid */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Paid</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(supplierStats.totalPaid)}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <CreditCard className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Outstanding Due */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Outstanding Due</p>
-              <p className={`text-2xl font-bold ${supplierStats.totalDue > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                {formatCurrency(supplierStats.totalDue)}
+            
+            {/* Name and Status */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-semibold text-gray-900 truncate">{supplier.name}</h1>
+              <p className="text-sm text-gray-500 truncate">
+                {supplier.contact_person ? `Contact: ${supplier.contact_person}` : 'Business Supplier'}
               </p>
             </div>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${supplierStats.totalDue > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
-              <DollarSign className={`h-6 w-6 ${supplierStats.totalDue > 0 ? 'text-red-600' : 'text-gray-400'}`} />
+          </button>
+
+          {/* Call Button */}
+          <button
+            onClick={supplier.phone ? handleCall : undefined}
+            className={`p-3 rounded-full transition-colors ${
+              supplier.phone 
+                ? 'hover:bg-green-100 text-green-600 cursor-pointer' 
+                : 'text-gray-300 cursor-not-allowed'
+            }`}
+            disabled={!supplier.phone}
+            title={supplier.phone ? `Call ${supplier.phone}` : 'No phone number available'}
+          >
+            <Phone className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Profile Modal - WhatsApp Style */}
+      {showProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden">
+            {/* Profile Header */}
+            <div className="bg-blue-500 text-white p-6 text-center">
+              <div className="w-24 h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-3">
+                {supplier.name.charAt(0).toUpperCase()}
+              </div>
+              <h2 className="text-xl font-semibold">{supplier.name}</h2>
+              {supplier.contact_person && (
+                <p className="text-blue-100 text-sm mt-1">{supplier.contact_person}</p>
+              )}
             </div>
+
+            {/* Profile Details */}
+            <div className="p-4 space-y-4">
+              {supplier.phone && (
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Phone className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{supplier.phone}</p>
+                    <p className="text-sm text-gray-500">Mobile</p>
+                  </div>
+                  <button
+                    onClick={handleCall}
+                    className="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition-colors"
+                  >
+                    Call
+                  </button>
+                </div>
+              )}
+
+              {supplier.email && (
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Mail className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{supplier.email}</p>
+                    <p className="text-sm text-gray-500">Email</p>
+                  </div>
+                </div>
+              )}
+
+              {supplier.address && (
+                <div className="flex items-start space-x-4">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{supplier.address}</p>
+                    <p className="text-sm text-gray-500">Address</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Due Amount */}
+              <div className="bg-gray-50 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600">Outstanding Amount</p>
+                <p className={`text-2xl font-bold ${
+                  supplierStats.totalDue > 0 ? 'text-red-600' : 'text-green-600'
+                }`}>
+                  {formatCurrency(supplierStats.totalDue)}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="p-4 border-t border-gray-200 space-y-3">
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowProfile(false)
+                    openEditModal()
+                  }}
+                  className="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setShowProfile(false)
+                    handleDeleteSupplier()
+                  }}
+                  className="flex-1 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Profile
+                </button>
+              </div>
+              <button
+                onClick={() => setShowProfile(false)}
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto p-4 space-y-6">
+
+      {/* Outstanding Amount - Right below navbar */}
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="text-center">
+          <p className="text-sm text-gray-600 mb-2">Outstanding Amount</p>
+          <p className={`text-4xl font-bold ${
+            supplierStats.totalDue > 0 ? 'text-red-600' : 'text-green-600'
+          }`}>
+            {formatCurrency(supplierStats.totalDue)}
+          </p>
+        </div>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Total Paid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <CreditCard className="h-6 w-6 text-green-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Total Paid</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(supplierStats.totalPaid)}</p>
+          </div>
+        </div>
+
+        {/* Total Purchases */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <ShoppingCart className="h-6 w-6 text-blue-600" />
+            </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Total Purchases</p>
+            <p className="text-2xl font-bold text-blue-600">{formatCurrency(supplierStats.totalPurchases)}</p>
           </div>
         </div>
 
         {/* Total Transactions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Transactions</p>
-              <p className="text-2xl font-bold text-gray-900">{supplierStats.transactionCount}</p>
-            </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
               <Receipt className="h-6 w-6 text-gray-600" />
             </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Total Transactions</p>
+            <p className="text-2xl font-bold text-gray-900">{supplierStats.transactionCount}</p>
           </div>
         </div>
       </div>
@@ -520,79 +870,22 @@ const SupplierDetail = () => {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="bg-green-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-700 transition-colors flex items-center"
-                  >
-                    <CreditCard className="h-4 w-4 mr-1" />
-                    Pay Due
-                  </button>
-                  <button
-                    onClick={() => setShowPurchaseModal(true)}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors flex items-center"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-1" />
-                    New Purchase
-                  </button>
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
             </div>
 
-            <div className="p-6">{transactions.length > 0 ? (
-              <div className="space-y-4">
-                {transactions.map((transaction) => (
-                  <div key={transaction.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {getTransactionIcon(transaction.type)}
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-gray-900">
-                              {getTransactionTypeLabel(transaction.type)}
-                            </span>
-                            {!transaction.is_paid && transaction.type === 'new_purchase' && (
-                              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-                                Unpaid
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-600 text-sm">{transaction.description}</p>
-                          {transaction.owner?.owner_name && (
-                            <p className="text-xs text-blue-600 mt-1">
-                              {transaction.type === 'new_purchase' ? 'Purchased by: ' : 'Paid by: '}
-                              {transaction.owner.owner_name}
-                            </p>
-                          )}
-                          <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
-                            <span className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {formatDate(transaction.created_at)}
-                            </span>
-                            {transaction.due_date && (
-                              <span>Due: {formatDate(transaction.due_date)}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-lg font-semibold ${getTransactionColor(transaction.type)}`}>
-                          {transaction.type === 'new_purchase' ? '+' : '-'}
-                          {formatCurrency(parseFloat(transaction.amount.toString()))}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No transactions yet with this supplier</p>
-              </div>
-            )}
+            <div className="p-6">
+              {transactions.length > 0 ? (
+                <div className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <TransactionItem key={transaction.id} transaction={transaction} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No transactions yet with this supplier</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -640,11 +933,12 @@ const SupplierDetail = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Made By
+                  Payment Made By *
                 </label>
                 <select
                   value={paymentOwnerId}
                   onChange={(e) => setPaymentOwnerId(e.target.value)}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="">Select who made this payment</option>
@@ -724,11 +1018,12 @@ const SupplierDetail = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Purchase Made By
+                  Purchase Made By *
                 </label>
                 <select
                   value={purchaseOwnerId}
                   onChange={(e) => setPurchaseOwnerId(e.target.value)}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select who made this purchase</option>
@@ -867,6 +1162,120 @@ const SupplierDetail = () => {
           </div>
         </div>
       )}
+      
+      {/* Context Menu */}
+      {contextMenu.show && (
+        <div 
+          className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-32"
+          style={{ 
+            left: Math.min(contextMenu.x, window.innerWidth - 160),
+            top: Math.min(contextMenu.y, window.innerHeight - 100)
+          }}
+        >
+          <button
+            onClick={editTransaction}
+            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-gray-700"
+          >
+            <Edit className="h-4 w-4 mr-3 text-blue-600" />
+            Edit Transaction
+          </button>
+          <button
+            onClick={deleteTransaction}
+            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-gray-700"
+          >
+            <Trash2 className="h-4 w-4 mr-3 text-red-600" />
+            Delete Transaction
+          </button>
+        </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {showEditTransactionModal && editingTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              Edit Transaction
+            </h2>
+            
+            <form onSubmit={handleEditTransaction} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount *
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editTransactionAmount}
+                    onChange={(e) => setEditTransactionAmount(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter amount"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={editTransactionDescription}
+                  onChange={(e) => setEditTransactionDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Transaction description"
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-700">
+                  Type: <span className="font-medium">{getTransactionTypeLabel(editingTransaction.type)}</span>
+                </p>
+                <p className="text-sm text-blue-700">
+                  Date: <span className="font-medium">{formatDate(editingTransaction.created_at)}</span>
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditTransactionModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Update Transaction
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col space-y-3 z-40">
+        <button
+          onClick={() => openPaymentModal()}
+          className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors flex items-center justify-center"
+          title="Pay Due"
+        >
+          <CreditCard className="h-6 w-6" />
+        </button>
+        <button
+          onClick={() => openPurchaseModal()}
+          className="w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
+          title="New Purchase"
+        >
+          <ShoppingCart className="h-6 w-6" />
+        </button>
+      </div>
+      </div>
     </div>
   )
 }

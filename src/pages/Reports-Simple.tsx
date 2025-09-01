@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext'
 import { 
   TrendingUp, 
   TrendingDown,
-  Calendar,
   Users,
   DollarSign,
   Download,

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { supabase, Transaction, Supplier } from '../lib/supabase'
+import { useState, useEffect } from 'react'
+import { supabase, Transaction } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { 
   Download, 
@@ -7,8 +7,14 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  PieChart
+  PieChart,
+  FileText,
+  FileSpreadsheet,
+  Filter
 } from 'lucide-react'
+import { PieChart as RechartsPieChart, Cell, ResponsiveContainer, Tooltip, Pie } from 'recharts'
+import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
 
 interface ReportData {
   totalPurchases: number
@@ -20,6 +26,11 @@ interface ReportData {
     payments: number
     outstanding: number
   }>
+  pieChartData: Array<{
+    name: string
+    value: number
+    color: string
+  }>
 }
 
 const Reports = () => {
@@ -28,12 +39,14 @@ const Reports = () => {
     totalPurchases: 0,
     totalPayments: 0,
     netOutstanding: 0,
-    supplierBreakdown: []
+    supplierBreakdown: [],
+    pieChartData: []
   })
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [showExportDropdown, setShowExportDropdown] = useState(false)
 
   useEffect(() => {
     // Set default date range (last 30 days)
@@ -50,6 +63,20 @@ const Reports = () => {
       fetchReportData()
     }
   }, [user, dateFrom, dateTo])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showExportDropdown) {
+        setShowExportDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showExportDropdown])
 
   const fetchReportData = async () => {
     if (!user) return
@@ -109,15 +136,31 @@ const Reports = () => {
       })
 
       const supplierBreakdown = Array.from(supplierMap.values())
-        .sort((a, b) => b.outstanding - a.outstanding)
+        .sort((a, b) => b.purchases - a.purchases)
 
       const netOutstanding = supplierBreakdown.reduce((sum, supplier) => sum + supplier.outstanding, 0)
+
+      // Generate pie chart data from purchases only
+      const colors = [
+        '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+        '#EC4899', '#14B8A6', '#F97316', '#6366F1', '#84CC16'
+      ]
+      
+      const pieChartData = supplierBreakdown
+        .filter(supplier => supplier.purchases > 0)
+        .slice(0, 10) // Top 10 suppliers
+        .map((supplier, index) => ({
+          name: supplier.supplier,
+          value: supplier.purchases,
+          color: colors[index % colors.length]
+        }))
 
       setReportData({
         totalPurchases,
         totalPayments,
         netOutstanding: Math.max(0, netOutstanding),
-        supplierBreakdown
+        supplierBreakdown,
+        pieChartData
       })
     } catch (error) {
       console.error('Error fetching report data:', error)
@@ -163,6 +206,71 @@ const Reports = () => {
     document.body.removeChild(link)
   }
 
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(
+      transactions.map(transaction => ({
+        Date: new Date(transaction.created_at).toLocaleDateString('en-IN'),
+        Supplier: transaction.supplier?.name || 'Unknown',
+        Type: getTransactionTypeLabel(transaction.type),
+        Description: transaction.description,
+        Amount: parseFloat(transaction.amount.toString()),
+        Status: transaction.is_paid ? 'Paid' : 'Unpaid',
+        'Due Date': transaction.due_date ? new Date(transaction.due_date).toLocaleDateString('en-IN') : ''
+      }))
+    )
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions')
+
+    // Add summary sheet
+    const summaryData = [
+      { Metric: 'Total Purchases', Value: reportData.totalPurchases },
+      { Metric: 'Total Payments', Value: reportData.totalPayments },
+      { Metric: 'Net Outstanding', Value: reportData.netOutstanding }
+    ]
+    const summarySheet = XLSX.utils.json_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
+
+    XLSX.writeFile(workbook, `transactions-report-${dateFrom}-to-${dateTo}.xlsx`)
+  }
+
+  const exportToPDF = () => {
+    const pdf = new jsPDF()
+    
+    // Add title
+    pdf.setFontSize(20)
+    pdf.text('Transaction Report', 20, 20)
+    
+    // Add date range
+    pdf.setFontSize(12)
+    pdf.text(`Period: ${dateFrom} to ${dateTo}`, 20, 35)
+    
+    // Add summary
+    pdf.setFontSize(14)
+    pdf.text('Summary', 20, 55)
+    pdf.setFontSize(10)
+    pdf.text(`Total Purchases: ₹${reportData.totalPurchases.toLocaleString()}`, 20, 70)
+    pdf.text(`Total Payments: ₹${reportData.totalPayments.toLocaleString()}`, 20, 80)
+    pdf.text(`Net Outstanding: ₹${reportData.netOutstanding.toLocaleString()}`, 20, 90)
+    
+    // Add supplier breakdown
+    pdf.setFontSize(14)
+    pdf.text('Top Suppliers by Purchases', 20, 110)
+    pdf.setFontSize(10)
+    
+    let yPosition = 125
+    reportData.supplierBreakdown.slice(0, 15).forEach((supplier, index) => {
+      if (yPosition > 270) {
+        pdf.addPage()
+        yPosition = 20
+      }
+      pdf.text(`${index + 1}. ${supplier.supplier}: ₹${supplier.purchases.toLocaleString()}`, 20, yPosition)
+      yPosition += 10
+    })
+    
+    pdf.save(`transactions-report-${dateFrom}-to-${dateTo}.pdf`)
+  }
+
   const getTransactionTypeLabel = (type: string) => {
     switch (type) {
       case 'new_purchase':
@@ -190,46 +298,84 @@ const Reports = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600 mt-1">Analyze your supplier transactions and dues</p>
+          <p className="text-gray-600 mt-1">Analyze your supplier transactions and purchases</p>
         </div>
-        <button
-          onClick={exportToCSV}
-          disabled={transactions.length === 0}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </button>
+        
+        {/* Export Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowExportDropdown(!showExportDropdown)}
+            disabled={transactions.length === 0}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </button>
+          
+          {showExportDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+              <div className="py-2">
+                <button
+                  onClick={() => {
+                    exportToCSV()
+                    setShowExportDropdown(false)
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-gray-700"
+                >
+                  <FileText className="h-4 w-4 mr-3 text-green-600" />
+                  Export as CSV
+                </button>
+                <button
+                  onClick={() => {
+                    exportToExcel()
+                    setShowExportDropdown(false)
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-gray-700"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-3 text-blue-600" />
+                  Export as Excel
+                </button>
+                <button
+                  onClick={() => {
+                    exportToPDF()
+                    setShowExportDropdown(false)
+                  }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-gray-700"
+                >
+                  <Download className="h-4 w-4 mr-3 text-red-600" />
+                  Export as PDF
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Date Range Filter */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              From Date
-            </label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <Calendar className="h-4 w-4 mr-2" />
-            {transactions.length} transactions found
+        <div className="flex items-center space-x-4">
+          <Filter className="h-5 w-5 text-gray-400" />
+          <h2 className="text-lg font-semibold text-gray-900">Date Filter</h2>
+          <div className="flex items-center space-x-4 ml-auto">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <label className="text-sm font-medium text-gray-700">From:</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">To:</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -242,54 +388,104 @@ const Reports = () => {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Total Purchases</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {formatCurrency(reportData.totalPurchases)}
-                  </p>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(reportData.totalPurchases)}</p>
                 </div>
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-red-600" />
-                </div>
+                <TrendingUp className="h-8 w-8 text-blue-600" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Total Payments</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {formatCurrency(reportData.totalPayments)}
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(reportData.totalPayments)}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <TrendingDown className="h-6 w-6 text-green-600" />
-                </div>
+                <TrendingDown className="h-8 w-8 text-green-600" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Net Outstanding</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(reportData.netOutstanding)}
-                  </p>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Outstanding Due</p>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(reportData.netOutstanding)}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
-                </div>
+                <BarChart3 className="h-8 w-8 text-red-600" />
               </div>
             </div>
+          </div>
+
+          {/* Purchase Distribution Pie Chart */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Purchase Distribution by Suppliers</h2>
+                <p className="text-gray-600 mt-1">Shows purchase amounts from each supplier</p>
+              </div>
+              <PieChart className="h-6 w-6 text-gray-400" />
+            </div>
+            
+            {reportData.pieChartData.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={reportData.pieChartData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {reportData.pieChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => [formatCurrency(Number(value)), 'Purchases']}
+                        labelFormatter={(label) => `${label}`}
+                      />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Top Suppliers List */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Suppliers</h3>
+                  <div className="space-y-3">
+                    {reportData.pieChartData.slice(0, 8).map((supplier) => (
+                      <div key={supplier.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center">
+                          <div 
+                            className="w-4 h-4 rounded-full mr-3" 
+                            style={{ backgroundColor: supplier.color }}
+                          ></div>
+                          <span className="font-medium text-gray-900">{supplier.name}</span>
+                        </div>
+                        <span className="text-gray-600 font-semibold">{formatCurrency(supplier.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <PieChart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No purchase data available for the selected period</p>
+              </div>
+            )}
           </div>
 
           {/* Supplier Breakdown */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Supplier Breakdown</h2>
-              <PieChart className="h-5 w-5 text-gray-400" />
+              <h2 className="text-lg font-semibold text-gray-900">Detailed Supplier Breakdown</h2>
+              <BarChart3 className="h-5 w-5 text-gray-400" />
             </div>
 
             {reportData.supplierBreakdown.length > 0 ? (
