@@ -15,7 +15,9 @@ import {
   ArrowDownRight,
   Receipt,
   CreditCard,
-  ShoppingCart
+  ShoppingCart,
+  Edit,
+  Trash2
 } from 'lucide-react'
 
 const SupplierDetail = () => {
@@ -36,6 +38,14 @@ const SupplierDetail = () => {
   const [purchaseDueDate, setPurchaseDueDate] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
   const [currentBalance, setCurrentBalance] = useState(0)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    contact_person: '',
+    phone: '',
+    email: '',
+    address: ''
+  })
   const [supplierStats, setSupplierStats] = useState({
     totalPurchases: 0,
     totalPaid: 0,
@@ -177,6 +187,71 @@ const SupplierDetail = () => {
     }
   }
 
+  const handleEditSupplier = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !id) return
+
+    try {
+      const { error } = await supabase
+        .from('suppliers')
+        .update(editFormData)
+        .eq('id', id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      await fetchSupplierData()
+      setShowEditModal(false)
+    } catch (error) {
+      console.error('Error updating supplier:', error)
+    }
+  }
+
+  const handleDeleteSupplier = async () => {
+    if (!user || !id) return
+    
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${supplier?.name}? This will also delete all associated transactions. This action cannot be undone.`
+    )
+
+    if (!confirmDelete) return
+
+    try {
+      // Delete all transactions first
+      await supabase
+        .from('transactions')
+        .delete()
+        .eq('supplier_id', id)
+        .eq('user_id', user.id)
+
+      // Then delete the supplier
+      const { error } = await supabase
+        .from('suppliers')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      navigate('/suppliers')
+    } catch (error) {
+      console.error('Error deleting supplier:', error)
+    }
+  }
+
+  const openEditModal = () => {
+    if (supplier) {
+      setEditFormData({
+        name: supplier.name,
+        contact_person: supplier.contact_person || '',
+        phone: supplier.phone || '',
+        email: supplier.email || '',
+        address: supplier.address || ''
+      })
+      setShowEditModal(true)
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -269,21 +344,41 @@ const SupplierDetail = () => {
             <p className="text-gray-600 mt-1">Supplier Details & Transaction History</p>
           </div>
         </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            Pay Due
-          </button>
-          <button
-            onClick={() => setShowPurchaseModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            New Purchase
-          </button>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <div className="flex space-x-2">
+            <button
+              onClick={openEditModal}
+              className="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
+              title="Edit Supplier"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </button>
+            <button
+              onClick={handleDeleteSupplier}
+              className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
+              title="Delete Supplier"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </button>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Pay Due
+            </button>
+            <button
+              onClick={() => setShowPurchaseModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              New Purchase
+            </button>
+          </div>
         </div>
       </div>
 
@@ -670,6 +765,102 @@ const SupplierDetail = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Add Purchase
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Supplier Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Edit Supplier</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSupplier} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Supplier Name *
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                  required
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Person
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.contact_person}
+                  onChange={(e) => setEditFormData({...editFormData, contact_person: e.target.value})}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
+                <textarea
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({...editFormData, address: e.target.value})}
+                  rows={3}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Update Supplier
                 </button>
               </div>
             </form>

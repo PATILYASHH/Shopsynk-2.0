@@ -7,21 +7,23 @@ import {
   Users, 
   Phone, 
   Mail, 
-  MapPin,
-  Edit,
-  Trash2,
-  Eye
+  MapPin
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+
+interface SupplierWithDues extends Supplier {
+  dueAmount: number
+}
 
 const Suppliers = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [suppliers, setSuppliers] = useState<SupplierWithDues[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState('dues_desc')
+  const [filterBy, setFilterBy] = useState('all')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     contact_person: '',
@@ -38,14 +40,50 @@ const Suppliers = () => {
     if (!user) return
 
     try {
-      const { data, error } = await supabase
+      // Fetch suppliers
+      const { data: suppliersData, error: suppliersError } = await supabase
         .from('suppliers')
         .select('*')
         .eq('user_id', user.id)
-        .order('name')
 
-      if (error) throw error
-      setSuppliers(data || [])
+      if (suppliersError) throw suppliersError
+
+      // Fetch all transactions to calculate dues
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (transactionsError) throw transactionsError
+
+      // Calculate due amounts for each supplier
+      const supplierBalances = new Map()
+      
+      transactions?.forEach((transaction) => {
+        const supplierId = transaction.supplier_id
+        
+        if (!supplierBalances.has(supplierId)) {
+          supplierBalances.set(supplierId, 0)
+        }
+        
+        if (transaction.type === 'new_purchase') {
+          supplierBalances.set(supplierId, 
+            supplierBalances.get(supplierId) + parseFloat(transaction.amount)
+          )
+        } else if (transaction.type === 'pay_due' || transaction.type === 'settle_bill') {
+          supplierBalances.set(supplierId, 
+            supplierBalances.get(supplierId) - parseFloat(transaction.amount)
+          )
+        }
+      })
+
+      // Combine suppliers with their due amounts
+      const suppliersWithDues = (suppliersData || []).map(supplier => ({
+        ...supplier,
+        dueAmount: Math.max(0, supplierBalances.get(supplier.id) || 0)
+      }))
+
+      setSuppliers(suppliersWithDues)
     } catch (error) {
       console.error('Error fetching suppliers:', error)
     } finally {
@@ -58,57 +96,16 @@ const Suppliers = () => {
     if (!user) return
 
     try {
-      if (editingSupplier) {
-        // Update existing supplier
-        const { error } = await supabase
-          .from('suppliers')
-          .update(formData)
-          .eq('id', editingSupplier.id)
-          .eq('user_id', user.id)
+      const { error } = await supabase
+        .from('suppliers')
+        .insert([{ ...formData, user_id: user.id }])
 
-        if (error) throw error
-      } else {
-        // Create new supplier
-        const { error } = await supabase
-          .from('suppliers')
-          .insert([{ ...formData, user_id: user.id }])
-
-        if (error) throw error
-      }
+      if (error) throw error
 
       await fetchSuppliers()
       resetForm()
     } catch (error) {
-      console.error('Error saving supplier:', error)
-    }
-  }
-
-  const handleEdit = (supplier: Supplier) => {
-    setEditingSupplier(supplier)
-    setFormData({
-      name: supplier.name,
-      contact_person: supplier.contact_person || '',
-      phone: supplier.phone || '',
-      email: supplier.email || '',
-      address: supplier.address || ''
-    })
-    setShowAddModal(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this supplier?')) return
-
-    try {
-      const { error } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id)
-
-      if (error) throw error
-      await fetchSuppliers()
-    } catch (error) {
-      console.error('Error deleting supplier:', error)
+      console.error('Error adding supplier:', error)
     }
   }
 
@@ -120,14 +117,40 @@ const Suppliers = () => {
       email: '',
       address: ''
     })
-    setEditingSupplier(null)
     setShowAddModal(false)
   }
 
-  const filteredSuppliers = suppliers.filter(supplier =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (supplier.contact_person && supplier.contact_person.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
+  // Filter and sort suppliers
+  const filteredAndSortedSuppliers = suppliers
+    .filter((supplier) => {
+      const matchesSearch = supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           supplier.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           supplier.phone?.includes(searchTerm) ||
+                           supplier.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesFilter = filterBy === 'all' ||
+                           (filterBy === 'with_dues' && supplier.dueAmount > 0) ||
+                           (filterBy === 'no_dues' && supplier.dueAmount === 0) ||
+                           (filterBy === 'high_dues' && supplier.dueAmount > 10000) ||
+                           (filterBy === 'medium_dues' && supplier.dueAmount > 1000 && supplier.dueAmount <= 10000) ||
+                           (filterBy === 'low_dues' && supplier.dueAmount > 0 && supplier.dueAmount <= 1000)
+      
+      return matchesSearch && matchesFilter
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'dues_desc':
+          return b.dueAmount - a.dueAmount
+        case 'dues_asc':
+          return a.dueAmount - b.dueAmount
+        case 'name_asc':
+          return a.name.localeCompare(b.name)
+        case 'name_desc':
+          return b.name.localeCompare(a.name)
+        default:
+          return b.dueAmount - a.dueAmount
+      }
+    })
 
   if (loading) {
     return (
@@ -138,216 +161,318 @@ const Suppliers = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Suppliers</h1>
-          <p className="text-gray-600 text-sm">Manage your supplier relationships</p>
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="text-center sm:text-left">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Suppliers</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Manage your business relationships</p>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center justify-center hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Supplier
+          </button>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium flex items-center justify-center hover:bg-blue-700 w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Supplier
-        </button>
+
+        {/* Search Bar */}
+        <div className="mt-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, contact, phone, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base"
+            />
+          </div>
+        </div>
+
+        {/* Filters - Mobile Optimized */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <select
+              value={filterBy}
+              onChange={(e) => setFilterBy(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-base"
+            >
+              <option value="all">🏢 All Suppliers</option>
+              <option value="with_dues">💰 With Dues</option>
+              <option value="no_dues">✅ No Dues</option>
+              <option value="high_dues">🔥 High Dues ({'>'}₹10K)</option>
+              <option value="medium_dues">⚠️ Medium Dues (₹1K-₹10K)</option>
+              <option value="low_dues">📊 Low Dues ({'<'}₹1K)</option>
+            </select>
+          </div>
+          
+          <div className="flex-1">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-base"
+            >
+              <option value="dues_desc">📈 Highest Dues First</option>
+              <option value="dues_asc">📉 Lowest Dues First</option>
+              <option value="name_asc">🔤 Name A to Z</option>
+              <option value="name_desc">🔤 Name Z to A</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center">
+            <p className="text-2xl font-bold text-blue-600">{suppliers.length}</p>
+            <p className="text-xs font-medium text-blue-700">Total Suppliers</p>
+          </div>
+          <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl text-center">
+            <p className="text-2xl font-bold text-red-600">
+              {suppliers.filter(s => s.dueAmount > 0).length}
+            </p>
+            <p className="text-xs font-medium text-red-700">With Dues</p>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl text-center">
+            <p className="text-2xl font-bold text-green-600">
+              {suppliers.filter(s => s.dueAmount === 0).length}
+            </p>
+            <p className="text-xs font-medium text-green-700">All Clear</p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center">
+            <p className="text-lg font-bold text-purple-600">
+              ₹{Math.round(suppliers.reduce((sum, s) => sum + s.dueAmount, 0)).toLocaleString()}
+            </p>
+            <p className="text-xs font-medium text-purple-700">Total Dues</p>
+          </div>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search suppliers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-
-      {/* Suppliers List - Mobile-first */}
-      <div className="space-y-4">
-        {filteredSuppliers.map((supplier) => (
-          <div key={supplier.id} className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-gray-900 text-lg mb-2">{supplier.name}</h3>
-                
-                <div className="space-y-1">
+      {/* Suppliers Grid - Mobile First Design */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {filteredAndSortedSuppliers.length === 0 ? (
+          <div className="col-span-full text-center py-16 bg-white rounded-xl shadow-sm">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+              <Users className="h-10 w-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No suppliers found</h3>
+            <p className="text-gray-500 mb-6">
+              {searchTerm ? 'Try adjusting your search or filters' : 'Add your first supplier to get started'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                Add Your First Supplier
+              </button>
+            )}
+          </div>
+        ) : (
+          filteredAndSortedSuppliers.map((supplier) => (
+            <div
+              key={supplier.id}
+              onClick={() => navigate(`/suppliers/${supplier.id}`)}
+              className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer group transform hover:scale-105"
+            >
+              {/* Supplier Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 text-lg truncate group-hover:text-blue-600 transition-colors">
+                    {supplier.name}
+                  </h3>
                   {supplier.contact_person && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{supplier.contact_person}</span>
-                    </div>
+                    <p className="text-sm text-gray-600 truncate mt-1">
+                      {supplier.contact_person}
+                    </p>
                   )}
-                  
-                  {supplier.phone && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <a href={`tel:${supplier.phone}`} className="text-blue-600 hover:underline">
-                        {supplier.phone}
-                      </a>
-                    </div>
-                  )}
-                  
-                  {supplier.email && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <a href={`mailto:${supplier.email}`} className="text-blue-600 hover:underline truncate">
-                        {supplier.email}
-                      </a>
-                    </div>
-                  )}
-                  
-                  {supplier.address && (
-                    <div className="flex items-start text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{supplier.address}</span>
-                    </div>
-                  )}
+                </div>
+                
+                {/* Due Amount Badge */}
+                <div className="ml-4 text-right">
+                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                    supplier.dueAmount > 0 
+                      ? supplier.dueAmount > 10000 
+                        ? 'bg-red-100 text-red-700' 
+                        : supplier.dueAmount > 1000 
+                        ? 'bg-yellow-100 text-yellow-700' 
+                        : 'bg-orange-100 text-orange-700'
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    ₹{Math.round(supplier.dueAmount).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {supplier.dueAmount > 0 ? 'Due Amount' : 'All Clear'}
+                  </p>
                 </div>
               </div>
               
-              <div className="flex space-x-2 ml-4">
+              {/* Contact Information */}
+              <div className="space-y-2">
+                {supplier.phone && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mr-3">
+                      <Phone className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <span className="font-medium">{supplier.phone}</span>
+                  </div>
+                )}
+                
+                {supplier.email && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mr-3">
+                      <Mail className="h-4 w-4 text-green-500" />
+                    </div>
+                    <span className="truncate font-medium">{supplier.email}</span>
+                  </div>
+                )}
+                
+                {supplier.address && (
+                  <div className="flex items-start text-sm text-gray-600">
+                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mr-3 mt-0.5">
+                      <MapPin className="h-4 w-4 text-purple-500" />
+                    </div>
+                    <span className="line-clamp-2 font-medium">{supplier.address}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Action Hint */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-xs text-gray-400 text-center group-hover:text-blue-400 transition-colors">
+                  Tap to view details & manage
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Floating Action Button for Mobile */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="fixed bottom-6 right-6 sm:hidden w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full shadow-2xl hover:from-blue-600 hover:to-blue-700 flex items-center justify-center z-40 transform hover:scale-110 transition-all duration-200"
+        style={{ boxShadow: '0 10px 25px rgba(59, 130, 246, 0.5)' }}
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* Add Supplier Modal - Enhanced Mobile Design */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white rounded-t-2xl sm:rounded-t-2xl z-10">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Add New Supplier</h2>
+                  <p className="text-sm text-gray-600 mt-1">Fill in the supplier details</p>
+                </div>
                 <button
-                  onClick={() => navigate(`/suppliers/${supplier.id}`)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                  title="View details"
+                  onClick={resetForm}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 >
-                  <Eye className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleEdit(supplier)}
-                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                  title="Edit"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(supplier.id)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                  title="Delete"
-                >
-                  <Trash2 className="h-4 w-4" />
+                  <span className="text-xl text-gray-500">×</span>
                 </button>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
 
-      {filteredSuppliers.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchTerm ? 'No suppliers found' : 'No suppliers yet'}
-          </h3>
-          <p className="text-gray-600 mb-6">
-            {searchTerm 
-              ? 'Try adjusting your search terms.' 
-              : 'Start by adding your first supplier to begin tracking dues.'
-            }
-          </p>
-          {!searchTerm && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add Supplier
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Modal Content */}
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Company Name *
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  Supplier Name *
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter company name"
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                  className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base transition-colors"
+                  placeholder="Enter supplier or company name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
                   Contact Person
                 </label>
-                <input
-                  type="text"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter contact person name"
-                />
+                <div className="relative">
+                  <Users className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base"
+                    placeholder="Primary contact person"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
                   Phone Number
                 </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter phone number"
-                />
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base"
+                    placeholder="Mobile or landline number"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
                   Email Address
                 </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter email address"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base"
+                    placeholder="contact@supplier.com"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Address
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  Business Address
                 </label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter address"
-                />
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                  <textarea
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    rows={4}
+                    className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base resize-none"
+                    placeholder="Complete business address including city and state"
+                  />
+                </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="order-2 sm:order-1 flex-1 px-6 py-4 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 font-medium transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="order-1 sm:order-2 flex-1 px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 font-medium shadow-lg transition-all duration-200"
                 >
-                  {editingSupplier ? 'Update' : 'Create'} Supplier
+                  Add Supplier
                 </button>
               </div>
             </form>

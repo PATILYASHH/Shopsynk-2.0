@@ -6,7 +6,6 @@ import {
   Users, 
   Receipt,
   AlertTriangle,
-  Plus,
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react'
@@ -218,19 +217,12 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header - Simplified for mobile */}
+      {/* Header - Simplified */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 text-sm">Your business overview</p>
         </div>
-        <button
-          onClick={() => navigate('/transactions')}
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium flex items-center justify-center hover:bg-blue-700 w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Transaction
-        </button>
       </div>
 
       {/* Stats Cards - Mobile-first grid */}
@@ -243,21 +235,27 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <button
+          onClick={() => navigate('/suppliers')}
+          className="bg-white rounded-lg p-4 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors w-full"
+        >
           <div className="text-center">
             <Users className="h-6 w-6 text-blue-500 mx-auto mb-2" />
             <p className="text-xs text-gray-500 mb-1">Suppliers</p>
             <p className="text-lg font-bold text-blue-600">{stats.totalSuppliers}</p>
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <button
+          onClick={() => navigate('/transactions')}
+          className="bg-white rounded-lg p-4 border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors w-full"
+        >
           <div className="text-center">
             <Receipt className="h-6 w-6 text-green-500 mx-auto mb-2" />
             <p className="text-xs text-gray-500 mb-1">Transactions</p>
             <p className="text-lg font-bold text-green-600">{stats.totalTransactions}</p>
           </div>
-        </div>
+        </button>
 
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-center">
