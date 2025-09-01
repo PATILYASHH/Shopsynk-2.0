@@ -4,8 +4,8 @@
   "description": "Complete supplier dues management system for businesses",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#FEF3C7",
+  "theme_color": "#F59E0B",
   "orientation": "portrait-primary",
   "categories": ["business", "finance", "productivity"],
   "lang": "en",
@@ -61,6 +61,10 @@
       "purpose": "maskable any"
     }
   ],
+  "splash_pages": null,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "screenshots": [
     {
       "src": "/screenshots/desktop-1.png",
