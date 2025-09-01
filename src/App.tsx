@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import SplashScreen from './components/SplashScreen'
+import IconUpdateNotification from './components/IconUpdateNotification'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -42,6 +43,7 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
+          <IconUpdateNotification />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
