@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext'
 import { supabase } from '../lib/supabase'
 import { NotificationData, NotificationContextType } from '../types/notifications'
 import { NotificationCleanupService } from '../services/NotificationCleanupService'
+import { pushNotificationService } from '../services/PushNotificationService'
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
@@ -31,6 +32,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
 
     loadNotifications()
     setupRealtimeSubscription()
+    initializePushNotifications()
     
     // Run cleanup when user logs in
     NotificationCleanupService.limitNotificationsPerUser(user.id, 50)
@@ -44,6 +46,47 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       clearInterval(cleanupInterval)
     }
   }, [user?.id])
+
+  // Initialize push notifications
+  const initializePushNotifications = async () => {
+    if (!user?.id) return
+
+    try {
+      // Initialize push notification service
+      const initialized = await pushNotificationService.initialize()
+      if (!initialized) {
+        console.warn('Push notifications not supported or failed to initialize')
+        return
+      }
+
+      // Request permission
+      const permissionGranted = await pushNotificationService.requestPermission()
+      if (!permissionGranted) {
+        console.warn('Push notification permission denied')
+        return
+      }
+
+      // Subscribe to push notifications
+      const subscribed = await pushNotificationService.subscribe(user.id)
+      if (subscribed) {
+        console.log('Push notifications enabled successfully')
+      } else {
+        console.warn('Failed to subscribe to push notifications')
+      }
+
+      // Listen for messages from service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'MARK_NOTIFICATION_READ') {
+            const notificationId = event.data.notificationId
+            markAsRead(notificationId)
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Push notification initialization failed:', error)
+    }
+  }
 
   const loadNotifications = async () => {
     if (!user?.id) return

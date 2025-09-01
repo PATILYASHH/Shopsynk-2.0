@@ -150,6 +150,96 @@ self.addEventListener('notificationclick', (event) => {
   }
 })
 
+// Push notification event handler
+self.addEventListener('push', (event) => {
+  console.log('[ServiceWorker] Push notification received:', event)
+  
+  if (!event.data) {
+    return
+  }
+
+  const data = event.data.json()
+  const options = {
+    body: data.body,
+    icon: '/pwa opning/SHOP.png',
+    badge: '/pwa opning/SHOP.png',
+    image: data.image,
+    tag: data.tag || 'shopsynk-notification',
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'view',
+        title: 'View Details',
+        icon: '/pwa opning/SHOP.png'
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss',
+        icon: '/pwa opning/SHOP.png'
+      }
+    ],
+    data: {
+      url: data.url || '/',
+      notificationId: data.notificationId
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  )
+})
+
+// Handle notification click events
+self.addEventListener('notificationclick', (event) => {
+  console.log('[ServiceWorker] Notification clicked:', event)
+  
+  event.notification.close()
+
+  if (event.action === 'dismiss') {
+    return
+  }
+
+  // Handle notification click - open the app or specific page
+  const urlToOpen = event.notification.data?.url || '/'
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      // Check if app is already open
+      for (const client of clientList) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus()
+        }
+      }
+      
+      // If app is not open, open it
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen)
+      }
+    })
+  )
+
+  // Mark notification as read if we have the notification ID
+  if (event.notification.data?.notificationId) {
+    // Send message to main app to mark as read
+    event.waitUntil(
+      clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'MARK_NOTIFICATION_READ',
+            notificationId: event.notification.data.notificationId
+          })
+        })
+      })
+    )
+  }
+})
+
+// Handle notification close events
+self.addEventListener('notificationclose', (event) => {
+  console.log('[ServiceWorker] Notification closed:', event)
+  // Optional: Track notification dismissals
+})
+
 // Function to handle background sync
 async function doBackgroundSync() {
   try {

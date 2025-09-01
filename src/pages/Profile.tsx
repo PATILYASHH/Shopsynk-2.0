@@ -5,6 +5,7 @@ import { BackupService } from '../lib/backupService'
 import { GoogleDriveService, GoogleDriveConfig } from '../lib/googleDrive'
 import { BusinessOwnersService, BusinessOwner, OwnerStats } from '../lib/businessOwners'
 import NotificationCleanupPanel from '../components/NotificationCleanupPanel'
+import PushNotificationSettings from '../components/PushNotificationSettings'
 import { 
   User, 
   Mail,
@@ -23,7 +24,8 @@ import {
   UserPlus,
   Edit,
   Trash2,
-  Star
+  Star,
+  Bell
 } from 'lucide-react'
 
 const Profile = () => {
@@ -902,8 +904,18 @@ const Profile = () => {
         </div>
       )}
 
-      {/* Notification Database Management */}
+      {/* Notification Management */}
       <div className="grid grid-cols-1 gap-6">
+        {/* Push Notification Settings */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <Bell className="h-5 w-5 mr-2 text-amber-600" />
+            Push Notifications
+          </h3>
+          <PushNotificationSettings />
+        </div>
+
+        {/* Notification Database Management */}
         <NotificationCleanupPanel />
       </div>
 

@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase'
 import { NotificationData } from '../types/notifications'
 
 export class NotificationService {
-  // Send notification to specific users (other account owners)
+  // Send notification to specific users (other account owners) with push support
   static async sendNotificationToAccountOwners(
     excludeUserId: string,
     notificationData: {
@@ -36,13 +36,31 @@ export class NotificationService {
         updated_at: new Date().toISOString()
       }))
 
-      const { error } = await supabase
+      const { data: insertedNotifications, error } = await supabase
         .from('notifications')
         .insert(notifications)
+        .select('id')
 
       if (error) throw error
 
       console.log(`Notifications sent to ${otherUsers.length} users`)
+
+      // Send push notifications to users who have subscribed
+      const userIds = otherUsers.map(user => user.id)
+      
+      try {
+        await this.sendPushNotification({
+          title: notificationData.title,
+          body: notificationData.message,
+          userIds,
+          url: this.getNotificationUrl(notificationData.type, notificationData.data),
+          tag: notificationData.type,
+          notificationId: insertedNotifications?.[0]?.id
+        })
+      } catch (pushError) {
+        console.warn('Push notification failed:', pushError)
+        // Don't fail the entire operation if push notifications fail
+      }
     } catch (error) {
       console.error('Error sending notifications:', error)
     }
@@ -167,5 +185,53 @@ export class NotificationService {
       return permission === 'granted'
     }
     return window.Notification.permission === 'granted'
+  }
+
+  // Send push notification via Supabase Edge Function
+  private static async sendPushNotification(payload: {
+    title: string
+    body: string
+    userIds: string[]
+    url?: string
+    tag?: string
+    notificationId?: string
+  }) {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+        body: payload
+      })
+
+      if (error) {
+        console.error('Push notification error:', error)
+        throw error
+      }
+
+      console.log('Push notification result:', data)
+      return data
+    } catch (error) {
+      console.error('Failed to send push notification:', error)
+      throw error
+    }
+  }
+
+  // Get appropriate URL for notification type
+  private static getNotificationUrl(
+    type: NotificationData['type'], 
+    data?: NotificationData['data']
+  ): string {
+    switch (type) {
+      case 'transaction_created':
+      case 'transaction_updated':
+        return data?.supplierId ? `/suppliers/${data.supplierId}` : '/transactions'
+      
+      case 'payment_made':
+        return data?.supplierId ? `/suppliers/${data.supplierId}` : '/suppliers'
+      
+      case 'supplier_added':
+        return data?.supplierId ? `/suppliers/${data.supplierId}` : '/suppliers'
+      
+      default:
+        return '/dashboard'
+    }
   }
 }
