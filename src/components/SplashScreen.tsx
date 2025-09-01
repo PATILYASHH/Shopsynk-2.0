@@ -22,9 +22,9 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       <div className="fixed inset-0 bg-gradient-to-br from-yellow-100 to-orange-200 flex items-center justify-center z-50 opacity-0 transition-opacity duration-300 pointer-events-none">
         <div className="text-center animate-fade-out">
           <img 
-            src="/splash/splash-640x1136.png" 
+            src="/pwa opning/SHOP.png" 
             alt="Shopsynk" 
-            className="w-32 h-32 mx-auto mb-6 animate-pulse"
+            className="w-48 h-48 mx-auto mb-6 animate-pulse object-contain"
             onError={(e) => {
               // Fallback to a simple logo if image fails to load
               e.currentTarget.style.display = 'none'
@@ -41,14 +41,14 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     <div className="fixed inset-0 bg-gradient-to-br from-yellow-100 to-orange-200 flex items-center justify-center z-50 transition-opacity duration-300">
       <div className="text-center animate-bounce-slow">
         <img 
-          src="/splash/splash-640x1136.png" 
+          src="/pwa opning/SHOP.png" 
           alt="Shopsynk" 
-          className="w-32 h-32 mx-auto mb-6 drop-shadow-lg"
+          className="w-48 h-48 mx-auto mb-6 drop-shadow-lg object-contain"
           onError={(e) => {
             // Fallback to text logo if image fails to load
             e.currentTarget.style.display = 'none'
             const fallback = document.createElement('div')
-            fallback.className = "w-32 h-32 mx-auto mb-6 bg-orange-400 rounded-3xl flex items-center justify-center text-white text-4xl font-bold shadow-lg"
+            fallback.className = "w-48 h-48 mx-auto mb-6 bg-orange-400 rounded-3xl flex items-center justify-center text-white text-6xl font-bold shadow-lg"
             fallback.textContent = "S"
             e.currentTarget.parentNode?.insertBefore(fallback, e.currentTarget)
           }}
