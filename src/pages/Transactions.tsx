@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, Transaction, Supplier } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
+import { NotificationService } from '../services/NotificationService'
 import SimpleTransactionForm from '../components/SimpleTransactionForm'
 import { 
   Plus, 
@@ -71,15 +72,48 @@ const Transactions = () => {
     if (!user) return
 
     try {
-      const { error } = await supabase
+      const { data: newTransaction, error } = await supabase
         .from('transactions')
         .insert([{ 
           ...formData, 
           user_id: user.id,
           amount: parseFloat(formData.amount)
         }])
+        .select(`
+          *,
+          supplier:suppliers(name),
+          owner:business_owners(owner_name)
+        `)
+        .single()
 
       if (error) throw error
+
+      // Send notification to other account owners
+      const supplier = suppliers.find(s => s.id === formData.supplier_id)
+      const owner = businessOwners.find(o => o.id === formData.owner_id)
+      
+      if (supplier && owner && user.email) {
+        const amount = parseFloat(formData.amount)
+        
+        if (formData.type === 'new_purchase') {
+          await NotificationService.notifyTransactionCreated(
+            user.id,
+            owner.owner_name,
+            amount,
+            supplier.name,
+            newTransaction.id,
+            supplier.id
+          )
+        } else if (formData.type === 'pay_due') {
+          await NotificationService.notifyPaymentMade(
+            user.id,
+            owner.owner_name,
+            amount,
+            supplier.name,
+            supplier.id
+          )
+        }
+      }
 
       await fetchData()
       setShowAddModal(false)

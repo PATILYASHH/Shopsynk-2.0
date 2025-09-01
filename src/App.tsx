@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { NotificationProvider } from './contexts/NotificationContext'
+import { NotificationService } from './services/NotificationService'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import SplashScreen from './components/SplashScreen'
@@ -34,6 +36,9 @@ function App() {
       setShowSplash(true)
       localStorage.setItem('shopsynk_first_launch', 'false')
     }
+
+    // Request notification permissions
+    NotificationService.requestNotificationPermission()
   }, [])
 
   if (showSplash) {
@@ -41,34 +46,36 @@ function App() {
   }
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <IconUpdateNotification />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/suppliers" element={<Suppliers />} />
-                      <Route path="/suppliers/:id" element={<SupplierDetail />} />
-                      <Route path="/transactions" element={<Transactions />} />
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/data-storage" element={<DataStorage />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
-      </Router>
+      <NotificationProvider>
+        <Router>
+          <div className="App">
+            <IconUpdateNotification />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/suppliers" element={<Suppliers />} />
+                        <Route path="/suppliers/:id" element={<SupplierDetail />} />
+                        <Route path="/transactions" element={<Transactions />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/data-storage" element={<DataStorage />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </div>
+        </Router>
+      </NotificationProvider>
     </AuthProvider>
   )
 }

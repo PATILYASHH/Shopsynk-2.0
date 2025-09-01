@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { BackupService } from '../lib/backupService'
 import { GoogleDriveService, GoogleDriveConfig } from '../lib/googleDrive'
 import { BusinessOwnersService, BusinessOwner, OwnerStats } from '../lib/businessOwners'
+import NotificationCleanupPanel from '../components/NotificationCleanupPanel'
 import { 
   User, 
   Mail,
@@ -900,6 +901,11 @@ const Profile = () => {
           </div>
         </div>
       )}
+
+      {/* Notification Database Management */}
+      <div className="grid grid-cols-1 gap-6">
+        <NotificationCleanupPanel />
+      </div>
 
       {/* Security Notice */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
