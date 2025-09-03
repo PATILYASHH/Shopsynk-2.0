@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://shopsynk.netlify.app/sitemap.xml
