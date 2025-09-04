@@ -1,6 +1,7 @@
 import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { getVersionDisplay } from '../constants/version'
 import PWAInstallPrompt from './PWAInstallPrompt'
 import PWAUpdateNotification from './PWAUpdateNotification'
 import NotificationDropdown from './NotificationDropdown'
@@ -13,7 +14,8 @@ import {
   User,
   Menu,
   X,
-  HardDrive
+  HardDrive,
+  Book
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -41,6 +43,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Transactions', path: '/transactions', icon: Receipt },
     { name: 'Reports', path: '/reports', icon: FileText },
     { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
+    { name: 'Documentation', path: '/documentation', icon: Book },
   ]
 
   const isActivePath = (path: string) => {
@@ -68,8 +71,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       }`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 bg-blue-600 text-white">
+          <div className="flex flex-col items-center justify-center h-16 bg-blue-600 text-white">
             <h1 className="text-xl font-bold">Shopsynk</h1>
+            <p className="text-xs text-blue-200">{getVersionDisplay()}</p>
           </div>
 
           {/* Navigation */}

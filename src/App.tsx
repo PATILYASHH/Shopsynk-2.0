@@ -15,6 +15,7 @@ import SupplierDetail from './pages/SupplierDetail'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
 import DataStorage from './pages/DataStorage'
+import Documentation from './pages/Documentation'
 import Profile from './pages/Profile'
 
 function App() {
@@ -65,6 +66,7 @@ function App() {
                         <Route path="/transactions" element={<Transactions />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/data-storage" element={<DataStorage />} />
+                        <Route path="/documentation" element={<Documentation />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Routes>

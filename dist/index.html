@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/pwa opning/SHOP.png" />
+    <link rel="shortcut icon" href="/pwa opning/SHOP.png" />
+    <link rel="apple-touch-icon" href="/pwa opning/SHOP.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="Shopsynk">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Shopsynk">
+    <meta name="description" content="Complete supplier dues management system for businesses - Version 1.00">
+    <meta name="keywords" content="shopsynk, management, business management, dues tracking, payment management, vendor management, business accounting, supplier dues, payment tracking, business finance, inventory management, supplier relationship, business dashboard, financial management, invoice tracking, business analytics, supplier database, payment reminders, business reports, transaction management, business administration,by yash patil,version 1.00">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#F59E0B">
+    
+    <!-- PWA Splash Screen for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Splash Screen Images for different iOS devices -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/splash/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/splash/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/splash/splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/splash/splash-1125x2436.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    
+    <!-- Desktop PWA Splash -->
+    <meta name="msapplication-TileImage" content="/splash/splash-640x1136.png">
+    <meta name="msapplication-TileColor" content="#FEF3C7">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/pwa opning/SHOP.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/pwa opning/SHOP.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/pwa opning/SHOP.png">
+    
+    <!-- Android Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.svg">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#2563eb">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="Shopsynk v1.00 - Supplier Management">
+    <meta property="og:description" content="Complete supplier dues management system for businesses - Version 1.00">
+    <meta property="og:image" content="/pwa opning/SHOP.png">
+    <meta property="og:url" content="https://shopsynk.netlify.app">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Shopsynk v1.00 - Supplier Management">
+    <meta name="twitter:description" content="Complete supplier dues management system for businesses - Version 1.00">
+    <meta name="twitter:image" content="/pwa opning/SHOP.png">
+    
+    <title>Shopsynk v1.00 - Supplier Management</title>
+    <script type="module" crossorigin src="/assets/index-Dy2igtZP.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-Dl7uvwRy.js">
+    <link rel="modulepreload" crossorigin href="/assets/supabase-BEcQKNCL.js">
+    <link rel="modulepreload" crossorigin href="/assets/ui-CBFgPT13.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CN1dWzyj.css">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- PWA Installation Script -->
+    <script>
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration)
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError)
+            })
+        })
+      }
+    </script>
+  </body>
+</html>

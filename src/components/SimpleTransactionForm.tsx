@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Plus, DollarSign } from 'lucide-react'
-import { Supplier } from '../lib/supabase'
+import { Supplier, Transaction } from '../lib/supabase'
 import { BusinessOwner } from '../lib/businessOwners'
 
 interface SimpleTransactionFormProps {
@@ -9,6 +9,7 @@ interface SimpleTransactionFormProps {
   onSubmit: (data: any) => void
   suppliers: Supplier[]
   businessOwners: BusinessOwner[]
+  editingTransaction?: Transaction | null
 }
 
 const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
@@ -16,7 +17,8 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
   onClose,
   onSubmit,
   suppliers,
-  businessOwners
+  businessOwners,
+  editingTransaction
 }) => {
   const [formData, setFormData] = useState({
     supplier_id: '',
@@ -26,16 +28,39 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
     owner_id: ''
   })
 
+  // Populate form when editing
+  useEffect(() => {
+    if (editingTransaction) {
+      setFormData({
+        supplier_id: editingTransaction.supplier_id || '',
+        type: editingTransaction.type,
+        amount: editingTransaction.amount.toString(),
+        description: editingTransaction.description || '',
+        owner_id: editingTransaction.owner_id || ''
+      })
+    } else {
+      setFormData({
+        supplier_id: '',
+        type: 'new_purchase',
+        amount: '',
+        description: '',
+        owner_id: ''
+      })
+    }
+  }, [editingTransaction, isOpen])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit(formData)
-    setFormData({
-      supplier_id: '',
-      type: 'new_purchase', 
-      amount: '',
-      description: '',
-      owner_id: ''
-    })
+    if (!editingTransaction) {
+      setFormData({
+        supplier_id: '',
+        type: 'new_purchase', 
+        amount: '',
+        description: '',
+        owner_id: ''
+      })
+    }
   }
 
   if (!isOpen) return null
@@ -45,7 +70,9 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
       <div className="bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Add Transaction</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            {editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg"
@@ -172,7 +199,7 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
               type="submit"
               className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Add Transaction
+              {editingTransaction ? 'Update Transaction' : 'Add Transaction'}
             </button>
           </div>
         </form>
