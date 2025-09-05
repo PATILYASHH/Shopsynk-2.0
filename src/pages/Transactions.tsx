@@ -5,7 +5,6 @@ import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
 import { NotificationService } from '../services/NotificationService'
 import SimpleTransactionForm from '../components/SimpleTransactionForm'
 import { 
-  Plus, 
   Search,
   ArrowUpRight,
   ArrowDownRight,
@@ -242,13 +241,6 @@ const Transactions = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transactions</h1>
           <p className="text-gray-600 text-sm">Track all your business transactions</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium flex items-center justify-center hover:bg-blue-700 w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Transaction
-        </button>
       </div>
 
       {/* Search and Filter */}

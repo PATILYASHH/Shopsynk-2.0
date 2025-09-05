@@ -95,6 +95,25 @@ const SupplierDetail = () => {
     }
   }, [contextMenu.show])
 
+  // Listen for custom events from Layout component
+  useEffect(() => {
+    const handleOpenPurchaseModal = () => {
+      setShowPurchaseModal(true)
+    }
+
+    const handleOpenPaymentModal = () => {
+      setShowPaymentModal(true)
+    }
+
+    window.addEventListener('openPurchaseModal', handleOpenPurchaseModal)
+    window.addEventListener('openPaymentModal', handleOpenPaymentModal)
+
+    return () => {
+      window.removeEventListener('openPurchaseModal', handleOpenPurchaseModal)
+      window.removeEventListener('openPaymentModal', handleOpenPaymentModal)
+    }
+  }, [])
+
   const fetchSupplierData = async () => {
     if (!user || !id) return
 
@@ -299,24 +318,6 @@ const SupplierDetail = () => {
       })
       setShowEditModal(true)
     }
-  }
-
-  const openPaymentModal = () => {
-    // Ensure we have the latest default owner when opening
-    const lastSelectedOwner = getLastSelectedOwner()
-    if (lastSelectedOwner && businessOwners.some(owner => owner.id === lastSelectedOwner)) {
-      setPaymentOwnerId(lastSelectedOwner)
-    }
-    setShowPaymentModal(true)
-  }
-
-  const openPurchaseModal = () => {
-    // Ensure we have the latest default owner when opening
-    const lastSelectedOwner = getLastSelectedOwner()
-    if (lastSelectedOwner && businessOwners.some(owner => owner.id === lastSelectedOwner)) {
-      setPurchaseOwnerId(lastSelectedOwner)
-    }
-    setShowPurchaseModal(true)
   }
 
   // Context menu handlers
@@ -1257,24 +1258,6 @@ const SupplierDetail = () => {
           </div>
         </div>
       )}
-      
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col space-y-3 z-40">
-        <button
-          onClick={() => openPaymentModal()}
-          className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors flex items-center justify-center"
-          title="Pay Due"
-        >
-          <CreditCard className="h-6 w-6" />
-        </button>
-        <button
-          onClick={() => openPurchaseModal()}
-          className="w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
-          title="New Purchase"
-        >
-          <ShoppingCart className="h-6 w-6" />
-        </button>
-      </div>
       </div>
     </div>
   )

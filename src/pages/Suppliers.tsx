@@ -9,7 +9,7 @@ import {
   Mail, 
   MapPin
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 interface SupplierWithDues extends Supplier {
   dueAmount: number
@@ -18,6 +18,7 @@ interface SupplierWithDues extends Supplier {
 const Suppliers = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [suppliers, setSuppliers] = useState<SupplierWithDues[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,6 +36,16 @@ const Suppliers = () => {
   useEffect(() => {
     fetchSuppliers()
   }, [user])
+
+  // Handle URL query parameter for adding supplier
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    if (searchParams.get('add') === 'true') {
+      setShowAddModal(true)
+      // Clean up URL without reloading
+      navigate('/suppliers', { replace: true })
+    }
+  }, [location.search, navigate])
 
   const fetchSuppliers = async () => {
     if (!user) return
@@ -169,13 +180,6 @@ const Suppliers = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Suppliers</h1>
             <p className="text-gray-600 text-sm sm:text-base">Manage your business relationships</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center justify-center hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Supplier
-          </button>
         </div>
 
         {/* Search Bar */}
@@ -259,16 +263,8 @@ const Suppliers = () => {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No suppliers found</h3>
             <p className="text-gray-500 mb-6">
-              {searchTerm ? 'Try adjusting your search or filters' : 'Add your first supplier to get started'}
+              {searchTerm ? 'Try adjusting your search or filters' : 'Use the + button below to add your first supplier'}
             </p>
-            {!searchTerm && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 transition-colors"
-              >
-                Add Your First Supplier
-              </button>
-            )}
           </div>
         ) : (
           filteredAndSortedSuppliers.map((supplier) => (

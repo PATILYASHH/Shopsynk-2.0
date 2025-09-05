@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getVersionDisplay } from '../constants/version'
@@ -14,7 +14,11 @@ import {
   User,
   HardDrive,
   Book,
-  Store
+  Store,
+  Plus,
+  ShoppingBasket,
+  CreditCard,
+  X
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -25,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showPlusMenu, setShowPlusMenu] = useState(false)
 
   const handleSignOut = async () => {
     try {
@@ -33,6 +38,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     } catch (error) {
       console.error('Error signing out:', error)
     }
+  }
+
+  // Check if we're on suppliers page or supplier detail page
+  const isOnSuppliersPage = location.pathname === '/suppliers'
+  const isOnSupplierDetailPage = location.pathname.startsWith('/suppliers/') && location.pathname !== '/suppliers'
+
+  // Handle plus button click
+  const handlePlusClick = () => {
+    if (isOnSuppliersPage) {
+      // Navigate to add new supplier (or trigger add supplier modal)
+      // For now, we'll use a query parameter to trigger the add supplier modal
+      navigate('/suppliers?add=true')
+    } else if (isOnSupplierDetailPage) {
+      // Show purchase/payment menu
+      setShowPlusMenu(true)
+    }
+  }
+
+  // Handle purchase action
+  const handlePurchase = () => {
+    setShowPlusMenu(false)
+    // Trigger purchase modal - this could be done via URL params or event system
+    const event = new CustomEvent('openPurchaseModal')
+    window.dispatchEvent(event)
+  }
+
+  // Handle payment action
+  const handlePayment = () => {
+    setShowPlusMenu(false)
+    // Trigger payment modal - this could be done via URL params or event system
+    const event = new CustomEvent('openPaymentModal')
+    window.dispatchEvent(event)
   }
 
   const navigation = [
@@ -46,8 +83,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const mobileNavigation = [
     { name: 'Dashboard', path: '/', icon: Home },
-    { name: 'Suppliers', path: '/suppliers', icon: Users },
     { name: 'Transactions', path: '/transactions', icon: Receipt },
+    { name: 'Suppliers', path: '/suppliers', icon: Users },
     { name: 'Reports', path: '/reports', icon: FileText },
     { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
   ]
@@ -129,8 +166,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-pb">
         <div className="flex items-center justify-around px-1 py-3">
           {mobileNavigation.map((item) => {
-            const Icon = item.icon
             const isActive = isActivePath(item.path)
+            
+            // Special handling for Suppliers button
+            if (item.path === '/suppliers' && (isOnSuppliersPage || isOnSupplierDetailPage)) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={handlePlusClick}
+                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 bg-blue-600 text-white transform scale-110"
+                  title={isOnSuppliersPage ? "Add Supplier" : "Quick Actions"}
+                >
+                  <Plus className="h-6 w-6 text-white" />
+                </button>
+              )
+            }
+            
+            // Regular navigation items
+            const Icon = item.icon
             return (
               <button
                 key={item.name}
@@ -148,6 +201,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           })}
         </div>
       </div>
+
+      {/* Plus Menu Popup for Supplier Detail */}
+      {showPlusMenu && isOnSupplierDetailPage && (
+        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end justify-center">
+          <div className="bg-white rounded-t-2xl w-full p-6 animate-slide-up">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+              <button
+                onClick={() => setShowPlusMenu(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={handlePurchase}
+                className="flex flex-col items-center p-6 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+                  <ShoppingBasket className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-red-700 font-medium">Add Purchase</span>
+                <span className="text-red-600 text-sm mt-1">Record new purchase</span>
+              </button>
+              
+              <button
+                onClick={handlePayment}
+                className="flex flex-col items-center p-6 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors"
+              >
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                  <CreditCard className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-green-700 font-medium">Pay Due</span>
+                <span className="text-green-600 text-sm mt-1">Make payment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Top Header */}
       <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40">
