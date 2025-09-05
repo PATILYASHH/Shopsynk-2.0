@@ -1,8 +1,8 @@
 {
-  "name": "Shopsynk v1.00 - Supplier Management",
-  "short_name": "Shopsynk",
-  "description": "Complete supplier dues management system for businesses - Version 1.00",
-  "version": "1.00",
+  "name": "Shopsynk v1.1 - Supplier Management",
+  "short_name": "Shopsynk v1.1",
+  "description": "Complete supplier dues management system with enhanced mobile navigation - Version 1.1",
+  "version": "1.1",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FEF3C7",

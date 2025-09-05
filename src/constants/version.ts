@@ -1,7 +1,7 @@
 // Application version information
-export const APP_VERSION = '1.00'
-export const VERSION_NAME = 'Documentation Update'
-export const RELEASE_DATE = 'September 4, 2025'
+export const APP_VERSION = '1.1'
+export const VERSION_NAME = 'The Navigation Update'
+export const RELEASE_DATE = 'September 5, 2025'
 
 // Version display formats
 export const getVersionDisplay = () => `v${APP_VERSION}`

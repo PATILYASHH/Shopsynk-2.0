@@ -12,10 +12,9 @@ import {
   Receipt, 
   FileText, 
   User,
-  Menu,
-  X,
   HardDrive,
-  Book
+  Book,
+  Store
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -26,7 +25,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const handleSignOut = async () => {
     try {
@@ -46,6 +44,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Documentation', path: '/documentation', icon: Book },
   ]
 
+  const mobileNavigation = [
+    { name: 'Dashboard', path: '/', icon: Home },
+    { name: 'Suppliers', path: '/suppliers', icon: Users },
+    { name: 'Transactions', path: '/transactions', icon: Receipt },
+    { name: 'Reports', path: '/reports', icon: FileText },
+    { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
+  ]
+
   const isActivePath = (path: string) => {
     if (path === '/') {
       return location.pathname === '/'
@@ -55,24 +61,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="bg-white p-2 rounded-lg shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
-        >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </div>
-
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      {/* Sidebar for Desktop */}
+      <div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg border-r border-gray-200">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex flex-col items-center justify-center h-16 bg-blue-600 text-white">
-            <h1 className="text-xl font-bold">Shopsynk</h1>
+            <div className="flex items-center space-x-2 mb-1">
+              <Store className="h-8 w-8 text-white" />
+              <h1 className="text-xl font-bold">Shopsynk</h1>
+            </div>
             <p className="text-xs text-blue-200">{getVersionDisplay()}</p>
           </div>
 
@@ -83,10 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               return (
                 <button
                   key={item.name}
-                  onClick={() => {
-                    navigate(item.path)
-                    setMobileMenuOpen(false)
-                  }}
+                  onClick={() => navigate(item.path)}
                   className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
                     isActivePath(item.path)
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -131,27 +125,79 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </div>
 
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-pb">
+        <div className="flex items-center justify-around px-1 py-3">
+          {mobileNavigation.map((item) => {
+            const Icon = item.icon
+            const isActive = isActivePath(item.path)
+            return (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.path)}
+                className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 ${
+                  isActive
+                    ? 'text-blue-600 bg-blue-50 transform scale-110'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 active:scale-95'
+                }`}
+                title={item.name}
+              >
+                <Icon className={`h-6 w-6 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Mobile Top Header */}
+      <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Store className="h-6 w-6 text-blue-600" />
+            <h1 className="text-lg font-bold text-blue-600">Shopsynk</h1>
+            <span className="ml-2 text-xs text-gray-500">{getVersionDisplay()}</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => navigate('/documentation')}
+              className={`p-2 rounded-lg transition-colors ${
+                isActivePath('/documentation') 
+                  ? 'bg-blue-50 text-blue-600' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Documentation"
+            >
+              <Book className="h-5 w-5" />
+            </button>
+            <NotificationDropdown />
+            <button
+              onClick={() => navigate('/profile')}
+              className={`p-2 rounded-lg transition-colors ${
+                isActivePath('/profile') 
+                  ? 'bg-blue-50 text-blue-600' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Profile"
+            >
+              <User className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top header bar */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 lg:px-8">
+        {/* Desktop Top header bar */}
+        <div className="hidden lg:block bg-white border-b border-gray-200 px-6 py-4 lg:px-8">
           <div className="flex items-center justify-end">
             <NotificationDropdown />
           </div>
         </div>
         
-        <main className="p-6 lg:p-8">
+        <main className="p-4 lg:p-8 pb-20 lg:pb-8 pt-4 lg:pt-0">
           {children}
         </main>
       </div>
-
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
 
       {/* PWA Components */}
       <PWAInstallPrompt />

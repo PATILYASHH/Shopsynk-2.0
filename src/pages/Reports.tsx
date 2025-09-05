@@ -294,26 +294,26 @@ const Reports = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Reports</h1>
           <p className="text-gray-600 mt-1">Analyze your supplier transactions and purchases</p>
         </div>
         
         {/* Export Dropdown */}
-        <div className="relative">
+        <div className="relative export-dropdown">
           <button
             onClick={() => setShowExportDropdown(!showExportDropdown)}
             disabled={transactions.length === 0}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="h-4 w-4 mr-2" />
             Export
           </button>
           
           {showExportDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
               <div className="py-2">
                 <button
                   onClick={() => {
@@ -353,27 +353,29 @@ const Reports = () => {
 
       {/* Date Range Filter */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center space-x-4">
-          <Filter className="h-5 w-5 text-gray-400" />
-          <h2 className="text-lg font-semibold text-gray-900">Date Filter</h2>
-          <div className="flex items-center space-x-4 ml-auto">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+          <div className="flex items-center space-x-2">
+            <Filter className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900">Date Filter</h2>
+          </div>
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:ml-auto">
             <div className="flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-gray-400" />
-              <label className="text-sm font-medium text-gray-700">From:</label>
+              <label className="text-sm font-medium text-gray-700 min-w-max">From:</label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">To:</label>
+              <label className="text-sm font-medium text-gray-700 min-w-max">To:</label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -387,58 +389,58 @@ const Reports = () => {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Total Purchases</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(reportData.totalPurchases)}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{formatCurrency(reportData.totalPurchases)}</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-blue-600" />
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               <div className="flex items-center">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Total Payments</p>
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(reportData.totalPayments)}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(reportData.totalPayments)}</p>
                 </div>
-                <TrendingDown className="h-8 w-8 text-green-600" />
+                <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 sm:col-span-2 lg:col-span-1">
               <div className="flex items-center">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-600">Outstanding Due</p>
-                  <p className="text-2xl font-bold text-red-600">{formatCurrency(reportData.netOutstanding)}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-600">{formatCurrency(reportData.netOutstanding)}</p>
                 </div>
-                <BarChart3 className="h-8 w-8 text-red-600" />
+                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
               </div>
             </div>
           </div>
 
           {/* Purchase Distribution Pie Chart */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Purchase Distribution by Suppliers</h2>
-                <p className="text-gray-600 mt-1">Shows purchase amounts from each supplier</p>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Purchase Distribution by Suppliers</h2>
+                <p className="text-gray-600 mt-1 text-sm sm:text-base">Shows purchase amounts from each supplier</p>
               </div>
-              <PieChart className="h-6 w-6 text-gray-400" />
+              <PieChart className="h-6 w-6 text-gray-400 mt-2 sm:mt-0" />
             </div>
             
             {reportData.pieChartData.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="h-80">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                <div className="h-64 sm:h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
                         data={reportData.pieChartData}
                         cx="50%"
                         cy="50%"
-                        outerRadius={100}
+                        outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -482,23 +484,23 @@ const Reports = () => {
           </div>
 
           {/* Supplier Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Detailed Supplier Breakdown</h2>
-              <BarChart3 className="h-5 w-5 text-gray-400" />
+              <BarChart3 className="h-5 w-5 text-gray-400 mt-2 sm:mt-0" />
             </div>
 
             {reportData.supplierBreakdown.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {reportData.supplierBreakdown.map((supplier, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-gray-900">{supplier.supplier}</h3>
-                      <span className="text-sm font-medium text-blue-600">
+                  <div key={index} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3">
+                      <h3 className="font-medium text-gray-900 text-sm sm:text-base">{supplier.supplier}</h3>
+                      <span className="text-xs sm:text-sm font-medium text-blue-600 mt-1 sm:mt-0">
                         Outstanding: {formatCurrency(supplier.outstanding)}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
                         <p className="text-gray-600">Total Purchases</p>
                         <p className="font-medium text-red-600">{formatCurrency(supplier.purchases)}</p>
@@ -512,9 +514,9 @@ const Reports = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No data available for the selected period</p>
+              <div className="text-center py-6 sm:py-8">
+                <BarChart3 className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 text-sm sm:text-base">No data available for the selected period</p>
               </div>
             )}
           </div>
