@@ -34,8 +34,8 @@ import {
 // Version History Data
 const versionHistory = [
   {
-    id: 'v1.1',
-    version: '1.1',
+    id: 'v1.2',
+    version: '1.2',
     name: 'The Navigation Update',
     date: 'September 5, 2025',
     type: 'major',
@@ -85,7 +85,7 @@ const versionHistory = [
     migration: []
   },
   {
-    id: 'v1.00',
+    id: 'v1.2',
     version: '1.00',
     name: 'Initial Release',
     date: 'September 1, 2025',
@@ -740,11 +740,11 @@ const Documentation: React.FC = () => {
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 mb-6">
               <div className="flex items-center mb-4">
                 <Smartphone className="h-8 w-8 text-purple-600 mr-3" />
-                <h2 className="text-2xl font-bold text-gray-900">Mobile Navigation v1.1</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Mobile Navigation v1.2</h2>
                 <span className="ml-3 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
               </div>
               <p className="text-gray-700 mb-4">
-                Version 1.1 introduces our completely redesigned mobile navigation system, 
+                Version 1.2 introduces our completely redesigned mobile navigation system, 
                 replacing the traditional hamburger menu with a modern bottom navigation bar 
                 for easier thumb-friendly access.
               </p>
@@ -988,7 +988,7 @@ const Documentation: React.FC = () => {
               </div>
               <div className="text-center">
                 <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">v1.1</div>
+                <div className="text-2xl font-bold text-gray-900">v1.2</div>
                 <div className="text-sm text-gray-600">Current Version</div>
               </div>
             </div>

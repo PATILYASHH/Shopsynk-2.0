@@ -1,5 +1,5 @@
 // Application version information
-export const APP_VERSION = '1.1'
+export const APP_VERSION = '1.2'
 export const VERSION_NAME = 'The Navigation Update'
 export const RELEASE_DATE = 'September 5, 2025'
 
