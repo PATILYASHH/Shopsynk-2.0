@@ -180,6 +180,15 @@ const Suppliers = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Suppliers</h1>
             <p className="text-gray-600 text-sm sm:text-base">Manage your business relationships</p>
           </div>
+          <div className="hidden sm:flex items-center">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 font-semibold shadow-md transition-all duration-200"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add New Supplier
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}

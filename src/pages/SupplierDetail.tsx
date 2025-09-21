@@ -742,15 +742,33 @@ const SupplierDetail = () => {
 
       <div className="max-w-4xl mx-auto p-4 space-y-6">
 
-      {/* Outstanding Amount - Right below navbar */}
+      {/* Outstanding Amount & Desktop Actions - Right below navbar */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="text-center">
-          <p className="text-sm text-gray-600 mb-2">Outstanding Amount</p>
-          <p className={`text-4xl font-bold ${
-            supplierStats.totalDue > 0 ? 'text-red-600' : 'text-green-600'
-          }`}>
-            {formatCurrency(supplierStats.totalDue)}
-          </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4 w-full">
+          <div className="text-center sm:text-left">
+            <p className="text-sm text-gray-600 mb-2">Outstanding Amount</p>
+            <p className={`text-4xl font-bold ${
+              supplierStats.totalDue > 0 ? 'text-red-600' : 'text-green-600'
+            }`}>
+              {formatCurrency(supplierStats.totalDue)}
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center space-x-3">
+            <button
+              onClick={() => setShowPurchaseModal(true)}
+              className="flex items-center justify-center bg-red-500 text-white px-5 py-3 rounded-xl hover:bg-red-600 font-semibold shadow-md transition-all"
+            >
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              Add Purchase
+            </button>
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="flex items-center justify-center bg-green-500 text-white px-5 py-3 rounded-xl hover:bg-green-600 font-semibold shadow-md transition-all"
+            >
+              <CreditCard className="h-5 w-5 mr-2" />
+              Pay Due
+            </button>
+          </div>
         </div>
       </div>
 
