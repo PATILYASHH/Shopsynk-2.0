@@ -28,6 +28,7 @@ const SupplierDetail = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -191,8 +192,9 @@ const SupplierDetail = () => {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !id || !paymentAmount || !paymentOwnerId) return
+    if (!user || !id || !paymentAmount || !paymentOwnerId || isSubmitting) return
 
+    setIsSubmitting(true)
     try {
       // Save the selected owner to local storage for future use
       saveLastSelectedOwner(paymentOwnerId)
@@ -218,13 +220,16 @@ const SupplierDetail = () => {
       // Keep the owner selected for next transaction
     } catch (error) {
       console.error('Error processing payment:', error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !id || !purchaseAmount || !purchaseOwnerId) return
+    if (!user || !id || !purchaseAmount || !purchaseOwnerId || isSubmitting) return
 
+    setIsSubmitting(true)
     try {
       // Save the selected owner to local storage for future use
       saveLastSelectedOwner(purchaseOwnerId)
@@ -252,6 +257,8 @@ const SupplierDetail = () => {
       // Keep the owner selected for next transaction
     } catch (error) {
       console.error('Error adding purchase:', error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -985,9 +992,10 @@ const SupplierDetail = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-green-400"
                 >
-                  Process Payment
+                  {isSubmitting ? 'Processing...' : 'Process Payment'}
                 </button>
               </div>
             </form>
@@ -1076,9 +1084,10 @@ const SupplierDetail = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
                 >
-                  Add Purchase
+                  {isSubmitting ? 'Adding...' : 'Add Purchase'}
                 </button>
               </div>
             </form>
