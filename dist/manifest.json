@@ -1,8 +1,8 @@
 {
-  "name": "Shopsynk v1.2 - Supplier Management",
-  "short_name": "Shopsynk v1.2",
-  "description": "Complete supplier dues management system with enhanced mobile navigation - Version 1.1",
-  "version": "1.1",
+  "name": "Shopsynk v1.3 - Person Money Tracking",
+  "short_name": "Shopsynk v1.3",
+  "description": "Complete supplier dues management with person-to-person money tracking - Version 1.3",
+  "version": "1.3",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FEF3C7",

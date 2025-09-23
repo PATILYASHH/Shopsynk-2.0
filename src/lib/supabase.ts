@@ -19,6 +19,36 @@ export interface Supplier {
   updated_at: string
 }
 
+export interface Person {
+  id: string
+  user_id: string
+  name: string
+  company?: string
+  phone?: string
+  address?: string
+  added_by_owner_id?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LoanTransaction {
+  id: string
+  user_id: string
+  person_id: string
+  owner_id?: string
+  type: 'Gives' | 'Takes'
+  amount: number
+  description: string
+  due_date?: string
+  is_paid: boolean
+  created_at: string
+  updated_at: string
+  person?: Person
+  owner?: {
+    owner_name: string
+  }
+}
+
 export interface Transaction {
   id: string
   user_id: string

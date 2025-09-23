@@ -1,14 +1,11 @@
 import React, { useState } from 'react'
-import { VERSION_NAME, RELEASE_DATE, getVersionDisplay } from '../constants/version'
+import { VERSION_NAME, getVersionDisplay } from '../constants/version'
 import { 
   Book, 
-  Github, 
-  Globe, 
   User, 
   FileText, 
   Shield, 
   Code, 
-  ExternalLink,
   Clock,
   Tag,
   ArrowRight,
@@ -34,13 +31,64 @@ import {
 // Version History Data
 const versionHistory = [
   {
+    id: 'v1.3',
+    version: '1.3',
+    name: 'Person Money Tracking',
+    date: 'September 23, 2025',
+    type: 'major',
+    color: 'green',
+    current: true,
+    description: 'Introducing comprehensive person-to-person money tracking alongside supplier management for complete financial relationship management.',
+    features: [
+      {
+        category: 'Person Money Tracking',
+        icon: User,
+        color: 'green',
+        items: [
+          'Complete person-to-person money tracking system',
+          'Track money given to persons ("Gives") and received from persons ("Takes")',
+          'Personal loan and debt management capabilities',
+          'Outstanding balance tracking for each person',
+          'Comprehensive person transaction history'
+        ]
+      },
+      {
+        category: 'Enhanced Reports',
+        icon: BarChart3,
+        color: 'blue',
+        items: [
+          'Dual reporting system for suppliers and persons',
+          'Person transaction analytics and insights',
+          'Combined financial overview across all relationships',
+          'Export functionality for person transactions',
+          'Visual charts and breakdowns for personal finances'
+        ]
+      },
+      {
+        category: 'Navigation Improvements',
+        icon: Smartphone,
+        color: 'purple',
+        items: [
+          'Added profile button to mobile more menu',
+          'Fixed person tab switching in reports',
+          'Improved navigation consistency across all sections',
+          'Enhanced mobile user experience',
+          'Better accessibility and touch targets'
+        ]
+      }
+    ],
+    impact: 'This major update expands Shopsynk beyond supplier management to include comprehensive person-to-person financial tracking. Users can now manage both business supplier relationships and personal financial transactions in one unified platform, providing complete visibility into all financial relationships.',
+    breaking: false,
+    migration: []
+  },
+  {
     id: 'v1.2',
     version: '1.2',
     name: 'The Navigation Update',
     date: 'September 5, 2025',
     type: 'major',
     color: 'purple',
-    current: true,
+    current: false,
     description: 'Complete mobile navigation redesign with enhanced user experience and comprehensive documentation.',
     features: [
       {
@@ -85,7 +133,7 @@ const versionHistory = [
     migration: []
   },
   {
-    id: 'v1.2',
+    id: 'v1.0',
     version: '1.00',
     name: 'Initial Release',
     date: 'September 1, 2025',
@@ -740,11 +788,11 @@ const Documentation: React.FC = () => {
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 mb-6">
               <div className="flex items-center mb-4">
                 <Smartphone className="h-8 w-8 text-purple-600 mr-3" />
-                <h2 className="text-2xl font-bold text-gray-900">Mobile Navigation v1.2</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Person Money Tracking v1.3</h2>
                 <span className="ml-3 bg-purple-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
               </div>
               <p className="text-gray-700 mb-4">
-                Version 1.2 introduces our completely redesigned mobile navigation system, 
+                Version 1.3 introduces comprehensive person-to-person money tracking alongside supplier management. Track money given to persons ("Gives") and received from persons ("Takes") with complete transaction history, outstanding balance management, and integrated reporting. 
                 replacing the traditional hamburger menu with a modern bottom navigation bar 
                 for easier thumb-friendly access.
               </p>
@@ -988,7 +1036,7 @@ const Documentation: React.FC = () => {
               </div>
               <div className="text-center">
                 <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">v1.2</div>
+                <div className="text-2xl font-bold text-gray-900">v1.3</div>
                 <div className="text-sm text-gray-600">Current Version</div>
               </div>
             </div>

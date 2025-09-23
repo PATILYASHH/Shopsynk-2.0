@@ -12,6 +12,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
+import Persons from './pages/Persons'
+import PersonDetail from './pages/PersonDetail'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
 import DataStorage from './pages/DataStorage'
@@ -63,6 +65,8 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/suppliers" element={<Suppliers />} />
                         <Route path="/suppliers/:id" element={<SupplierDetail />} />
+                        <Route path="/persons" element={<Persons />} />
+                        <Route path="/persons/:id" element={<PersonDetail />} />
                         <Route path="/transactions" element={<Transactions />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/data-storage" element={<DataStorage />} />

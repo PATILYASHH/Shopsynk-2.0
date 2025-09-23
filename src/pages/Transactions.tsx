@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase, Transaction, Supplier } from '../lib/supabase'
+import { supabase, Transaction, Supplier, LoanTransaction } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
 import { NotificationService } from '../services/NotificationService'
@@ -13,17 +13,21 @@ import {
   Filter,
   Edit3,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Users,
+  User
 } from 'lucide-react'
 
 const Transactions = () => {
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loanTransactions, setLoanTransactions] = useState<LoanTransaction[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [activeTab, setActiveTab] = useState<'suppliers' | 'persons'>('suppliers') // 'suppliers', 'persons'
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [showDropdown, setShowDropdown] = useState<string | null>(null)
@@ -48,7 +52,7 @@ const Transactions = () => {
     if (!user) return
 
     try {
-      // Fetch transactions with supplier and owner info
+      // Fetch supplier transactions with supplier and owner info
       const { data: transactionsData, error: transactionsError } = await supabase
         .from('transactions')
         .select(`
@@ -60,6 +64,19 @@ const Transactions = () => {
         .order('created_at', { ascending: false })
 
       if (transactionsError) throw transactionsError
+
+      // Fetch person loan transactions with person and owner info
+      const { data: loanTransactionsData, error: loanTransactionsError } = await supabase
+        .from('loan_transactions')
+        .select(`
+          *,
+          person:persons(name),
+          owner:business_owners(owner_name)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (loanTransactionsError) throw loanTransactionsError
 
       // Fetch suppliers for dropdown
       const { data: suppliersData, error: suppliersError } = await supabase
@@ -75,6 +92,7 @@ const Transactions = () => {
       const owners = await businessOwnersService.getBusinessOwners(user.id)
       
       setTransactions(transactionsData || [])
+      setLoanTransactions(loanTransactionsData || [])
       setSuppliers(suppliersData || [])
       setBusinessOwners(owners || [])
     } catch (error) {
@@ -181,39 +199,69 @@ const Transactions = () => {
     }
   }
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((transaction) => {
+  // Combine and filter all transactions
+  const allTransactions = [
+    ...transactions.map(t => ({ ...t, transactionType: 'supplier' as const })),
+    ...loanTransactions.map(t => ({ ...t, transactionType: 'person' as const }))
+  ]
+
+  const filteredTransactions = allTransactions.filter((transaction) => {
     const matchesSearch = transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (transaction.transactionType === 'supplier' && transaction.supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (transaction.transactionType === 'person' && transaction.person?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          transaction.owner?.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesTab = transaction.transactionType === activeTab.slice(0, -1) // 'suppliers' -> 'supplier', 'persons' -> 'person'
     
     const matchesType = typeFilter === 'all' || transaction.type === typeFilter
     
-    return matchesSearch && matchesType
-  })
+    return matchesSearch && matchesTab && matchesType
+  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case 'new_purchase':
-        return <ArrowUpRight className="h-4 w-4 text-red-500" />
-      case 'pay_due':
-      case 'settle_bill':
-        return <ArrowDownRight className="h-4 w-4 text-green-500" />
-      default:
-        return <Receipt className="h-4 w-4 text-gray-500" />
+  const getTransactionIcon = (type: string, transactionType: string) => {
+    if (transactionType === 'person') {
+      switch (type) {
+        case 'Gives':
+          return <ArrowUpRight className="h-4 w-4 text-red-500" />
+        case 'Takes':
+          return <ArrowDownRight className="h-4 w-4 text-green-500" />
+        default:
+          return <Receipt className="h-4 w-4 text-gray-500" />
+      }
+    } else {
+      switch (type) {
+        case 'new_purchase':
+          return <ArrowUpRight className="h-4 w-4 text-red-500" />
+        case 'pay_due':
+        case 'settle_bill':
+          return <ArrowDownRight className="h-4 w-4 text-green-500" />
+        default:
+          return <Receipt className="h-4 w-4 text-gray-500" />
+      }
     }
   }
 
-  const getTransactionTypeLabel = (type: string) => {
-    switch (type) {
-      case 'new_purchase':
-        return 'Purchase'
-      case 'pay_due':
-        return 'Payment'
-      case 'settle_bill':
-        return 'Settlement'
-      default:
-        return type
+  const getTransactionTypeLabel = (type: string, transactionType: string) => {
+    if (transactionType === 'person') {
+      switch (type) {
+        case 'Gives':
+          return 'Gives'
+        case 'Takes':
+          return 'Takes'
+        default:
+          return type
+      }
+    } else {
+      switch (type) {
+        case 'new_purchase':
+          return 'Purchase'
+        case 'pay_due':
+          return 'Payment'
+        case 'settle_bill':
+          return 'Settlement'
+        default:
+          return type
+      }
     }
   }
 
@@ -243,6 +291,34 @@ const Transactions = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('suppliers')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'suppliers'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Users className="h-4 w-4 inline mr-2" />
+            Suppliers
+          </button>
+          <button
+            onClick={() => setActiveTab('persons')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'persons'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <User className="h-4 w-4 inline mr-2" />
+            Persons
+          </button>
+        </nav>
+      </div>
+
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -264,8 +340,17 @@ const Transactions = () => {
             className="pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
           >
             <option value="all">All Types</option>
-            <option value="new_purchase">Purchases</option>
-            <option value="pay_due">Payments</option>
+            {activeTab === 'suppliers' ? (
+              <>
+                <option value="new_purchase">Purchases</option>
+                <option value="pay_due">Payments</option>
+              </>
+            ) : (
+              <>
+                <option value="Gives">Gives</option>
+                <option value="Takes">Takes</option>
+              </>
+            )}
           </select>
         </div>
       </div>
@@ -286,22 +371,37 @@ const Transactions = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1 min-w-0">
                   <div className="flex-shrink-0 mt-1">
-                    {getTransactionIcon(transaction.type)}
+                    {getTransactionIcon(transaction.type, transaction.transactionType)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {transaction.supplier?.name}
-                      </h3>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {transaction.transactionType === 'supplier' 
+                            ? transaction.supplier?.name 
+                            : transaction.person?.name}
+                        </h3>
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          transaction.transactionType === 'supplier'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                          {transaction.transactionType === 'supplier' ? 'Supplier' : 'Person'}
+                        </span>
+                      </div>
                       <p className={`font-semibold text-lg ${
-                        transaction.type === 'new_purchase' ? 'text-red-600' : 'text-green-600'
+                        (transaction.transactionType === 'supplier' && transaction.type === 'new_purchase') ||
+                        (transaction.transactionType === 'person' && transaction.type === 'Gives')
+                          ? 'text-red-600' : 'text-green-600'
                       }`}>
-                        {transaction.type === 'new_purchase' ? '+' : '-'}₹{Math.round(transaction.amount).toLocaleString()}
+                        {(transaction.transactionType === 'supplier' && transaction.type === 'new_purchase') ||
+                         (transaction.transactionType === 'person' && transaction.type === 'Gives')
+                          ? '+' : '-'}₹{Math.round(transaction.amount).toLocaleString()}
                       </p>
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-1">{getTransactionTypeLabel(transaction.type)}</p>
+                    <p className="text-sm text-gray-600 mb-1">{getTransactionTypeLabel(transaction.type, transaction.transactionType)}</p>
                     
                     {transaction.description && (
                       <p className="text-sm text-gray-500 mb-2 line-clamp-2">{transaction.description}</p>
@@ -321,34 +421,36 @@ const Transactions = () => {
                   </div>
                 </div>
                 
-                {/* Actions Menu */}
-                <div className="relative ml-3">
-                  <button
-                    onClick={() => setShowDropdown(showDropdown === transaction.id ? null : transaction.id)}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <MoreVertical className="h-4 w-4 text-gray-500" />
-                  </button>
-                  
-                  {showDropdown === transaction.id && (
-                    <div className="dropdown-menu absolute right-0 top-8 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                      <button
-                        onClick={() => handleEditTransaction(transaction)}
-                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center rounded-t-lg"
-                      >
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTransaction(transaction.id)}
-                        className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center rounded-b-lg"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {/* Actions Menu - Only for supplier transactions */}
+                {transaction.transactionType === 'supplier' && (
+                  <div className="relative ml-3">
+                    <button
+                      onClick={() => setShowDropdown(showDropdown === transaction.id ? null : transaction.id)}
+                      className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <MoreVertical className="h-4 w-4 text-gray-500" />
+                    </button>
+                    
+                    {showDropdown === transaction.id && (
+                      <div className="dropdown-menu absolute right-0 top-8 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <button
+                          onClick={() => handleEditTransaction(transaction as Transaction)}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center rounded-t-lg"
+                        >
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTransaction(transaction.id)}
+                          className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center rounded-b-lg"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))
