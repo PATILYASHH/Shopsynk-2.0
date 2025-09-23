@@ -315,31 +315,28 @@ const Suppliers = () => {
               </div>
               
               {/* Contact Information */}
-              <div className="space-y-2">
+              <div className="flex space-x-2">
                 {supplier.phone && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                       <Phone className="h-4 w-4 text-blue-500" />
                     </div>
-                    <span className="font-medium">{supplier.phone}</span>
                   </div>
                 )}
                 
                 {supplier.email && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                       <Mail className="h-4 w-4 text-green-500" />
                     </div>
-                    <span className="truncate font-medium">{supplier.email}</span>
                   </div>
                 )}
                 
                 {supplier.address && (
-                  <div className="flex items-start text-sm text-gray-600">
-                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mr-3 mt-0.5">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
                       <MapPin className="h-4 w-4 text-purple-500" />
                     </div>
-                    <span className="line-clamp-2 font-medium">{supplier.address}</span>
                   </div>
                 )}
               </div>

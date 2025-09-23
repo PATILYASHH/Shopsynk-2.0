@@ -2,7 +2,13 @@
 
 This guide explains how to update the version information across the Shopsynk application.
 
-## Current Version: 1.00
+## Current Version: 1.3 - Person Money Tracking
+
+## Files to Update When Releasing a New Version:on Update Guide
+
+This guide explains how to update the version information across the Shopsynk application.
+
+## Current Version: 1.3
 
 ## Files to Update When Releasing a New Version:
 
