@@ -31,13 +31,40 @@ import {
 // Version History Data
 const versionHistory = [
   {
+    id: 'v1.3.2',
+    version: '1.3.2',
+    name: 'Mobile Logout Enhancement',
+    date: 'September 24, 2025',
+    type: 'minor',
+    color: 'red',
+    current: true,
+    description: 'Enhanced mobile user experience with logout functionality accessible from the mobile navigation menu.',
+    features: [
+      {
+        category: 'Mobile User Experience',
+        icon: Smartphone,
+        color: 'red',
+        items: [
+          'Added logout button to mobile More menu',
+          'Easy access to sign out functionality on mobile devices',
+          'Improved mobile navigation completeness',
+          'Consistent logout experience across all platforms',
+          'Enhanced mobile security and session management'
+        ]
+      }
+    ],
+    impact: 'This minor update improves the mobile user experience by providing easy access to logout functionality. Users can now securely sign out of their account directly from the mobile navigation, ensuring better session management and security on mobile devices.',
+    breaking: false,
+    migration: []
+  },
+  {
     id: 'v1.3',
     version: '1.3',
     name: 'Person Money Tracking',
     date: 'September 23, 2025',
     type: 'major',
     color: 'green',
-    current: true,
+    current: false,
     description: 'Introducing comprehensive person-to-person money tracking alongside supplier management for complete financial relationship management.',
     features: [
       {
@@ -1032,11 +1059,11 @@ const Documentation: React.FC = () => {
               <div className="text-center">
                 <Smartphone className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-gray-900">NEW</div>
-                <div className="text-sm text-gray-600">Mobile Navigation</div>
+                <div className="text-sm text-gray-600">Mobile Logout</div>
               </div>
               <div className="text-center">
                 <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">v1.3</div>
+                <div className="text-2xl font-bold text-gray-900">v1.3.2</div>
                 <div className="text-sm text-gray-600">Current Version</div>
               </div>
             </div>
