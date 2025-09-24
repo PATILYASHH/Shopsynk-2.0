@@ -1,4 +1,5 @@
-﻿<div align="center">
+
+ <div align="center">
 
 #  ShopSynk 2.0
 
