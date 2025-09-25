@@ -34,6 +34,27 @@ const Dashboard = () => {
     upcomingDues: []
   })
   const [loading, setLoading] = useState(true)
+  const [featureSettings, setFeatureSettings] = useState({
+    suppliers: true,
+    spends: true,
+    persons: true,
+    reports: true,
+    dataStorage: true,
+    documentation: true
+  })
+
+  // Load feature settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('shopsynk_settings')
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings)
+        setFeatureSettings(parsed.features || featureSettings)
+      } catch (error) {
+        console.error('Error loading feature settings:', error)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     fetchDashboardData()
@@ -236,8 +257,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Cards - Mobile-first grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      {/* Stats Cards - Dynamic grid based on enabled features */}
+      <div className={`grid gap-3 sm:gap-4 ${
+        (featureSettings.suppliers && featureSettings.spends) ? 'grid-cols-2 lg:grid-cols-5' :
+        (featureSettings.suppliers || featureSettings.spends) ? 'grid-cols-2 lg:grid-cols-4' :
+        'grid-cols-2 lg:grid-cols-3'
+      }`}>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-center">
             <DollarSign className="h-6 w-6 text-red-500 mx-auto mb-2" />
@@ -246,6 +271,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {featureSettings.suppliers && (
         <button
           onClick={() => navigate('/suppliers')}
           className="bg-white rounded-lg p-4 border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors w-full"
@@ -256,6 +282,7 @@ const Dashboard = () => {
             <p className="text-lg font-bold text-blue-600">{stats.totalSuppliers}</p>
           </div>
         </button>
+        )}
 
         <button
           onClick={() => navigate('/transactions')}
@@ -276,6 +303,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {featureSettings.spends && (
         <button
           onClick={() => navigate('/spends')}
           className="bg-white rounded-lg p-4 border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors w-full"
@@ -286,6 +314,7 @@ const Dashboard = () => {
             <p className="text-lg font-bold text-purple-600">₹{Math.round(stats.totalSpends).toLocaleString()}</p>
           </div>
         </button>
+        )}
       </div>
 
       {/* Single column layout for mobile, two columns for larger screens */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getVersionDisplay } from '../constants/version'
@@ -21,7 +21,8 @@ import {
   X,
   MoreVertical,
   HandCoins,
-  DollarSign
+  DollarSign,
+  Settings
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -35,6 +36,42 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showPersonMenu, setShowPersonMenu] = useState(false)
+  const [featureSettings, setFeatureSettings] = useState({
+    suppliers: true,
+    spends: true,
+    persons: true,
+    reports: true,
+    dataStorage: true,
+    documentation: true
+  })
+
+  // Load feature settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('shopsynk_settings')
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings)
+        setFeatureSettings(parsed.features || featureSettings)
+      } catch (error) {
+        console.error('Error loading feature settings:', error)
+      }
+    }
+  }, []) // Remove featureSettings from dependencies to avoid infinite loop
+
+  // Filter navigation based on feature settings
+  const getFilteredNavigation = (navItems: any[]) => {
+    return navItems.filter(item => {
+      if (item.path === '/') return true // Always show dashboard
+      if (item.path === '#') return true // Always show More button
+      if (item.path === '/suppliers') return featureSettings.suppliers
+      if (item.path === '/spends') return featureSettings.spends
+      if (item.path === '/persons') return featureSettings.persons
+      if (item.path === '/reports') return featureSettings.reports
+      if (item.path === '/data-storage') return featureSettings.dataStorage
+      if (item.path === '/documentation') return featureSettings.documentation
+      return true
+    })
+  }
 
   const handleSignOut = async () => {
     try {
@@ -104,7 +141,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     window.dispatchEvent(event)
   }
 
-  const navigation = [
+  const navigation = getFilteredNavigation([
     { name: 'Dashboard', path: '/', icon: Home },
     { name: 'Suppliers', path: '/suppliers', icon: Users },
     { name: 'Persons', path: '/persons', icon: User },
@@ -112,7 +149,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Reports', path: '/reports', icon: FileText },
     { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
     { name: 'Documentation', path: '/documentation', icon: Book },
-  ]
+  ])
 
   const isActivePath = (path: string) => {
     if (path === '/') {
@@ -123,34 +160,34 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Dynamic mobile navigation based on current page
   const getBaseNavigation = () => {
-    const defaultNav = [
+    const defaultNav = getFilteredNavigation([
       { name: 'Dashboard', path: '/', icon: Home },
       { name: 'Spends', path: '/spends', icon: DollarSign },
       { name: 'Suppliers', path: '/suppliers', icon: Users },
       { name: 'Persons', path: '/persons', icon: User },
       { name: 'More', path: '#', icon: MoreVertical },
-    ]
+    ])
 
     // When on spends page: Dashboard, Suppliers, Spends, Persons, More
     if (isOnSpendsPage) {
-      return [
+      return getFilteredNavigation([
         { name: 'Dashboard', path: '/', icon: Home },
         { name: 'Suppliers', path: '/suppliers', icon: Users },
         { name: 'Spends', path: '/spends', icon: DollarSign },
         { name: 'Persons', path: '/persons', icon: User },
         { name: 'More', path: '#', icon: MoreVertical },
-      ]
+      ])
     }
 
     // When on persons page: Dashboard, Spends, Persons, Suppliers, More
     if (isOnPersonsPage) {
-      return [
+      return getFilteredNavigation([
         { name: 'Dashboard', path: '/', icon: Home },
         { name: 'Spends', path: '/spends', icon: DollarSign },
         { name: 'Persons', path: '/persons', icon: User },
         { name: 'Suppliers', path: '/suppliers', icon: Users },
         { name: 'More', path: '#', icon: MoreVertical },
-      ]
+      ])
     }
 
     // When on suppliers page: keep default navigation, just show + at suppliers position
@@ -498,6 +535,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <Book className="h-4 w-4 mr-3 text-gray-500" />
               Documentation
+            </button>
+            <button
+              onClick={() => {
+                navigate('/settings')
+                setShowMoreMenu(false)
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+            >
+              <Settings className="h-4 w-4 mr-3 text-gray-500" />
+              Settings
             </button>
             <div className="border-t border-gray-200 my-1"></div>
             <button
