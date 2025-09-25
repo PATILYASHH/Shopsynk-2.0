@@ -1,7 +1,7 @@
 // Application version information
-export const APP_VERSION = '1.3.2'
-export const VERSION_NAME = 'Mobile Logout Enhancement'
-export const RELEASE_DATE = 'September 24, 2025'
+export const APP_VERSION = '1.4.0'
+export const VERSION_NAME = 'The Spends update'
+export const RELEASE_DATE = 'September 25, 2025'
 
 // Version display formats
 export const getVersionDisplay = () => `v${APP_VERSION}`

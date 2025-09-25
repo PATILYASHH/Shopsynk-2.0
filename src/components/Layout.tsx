@@ -53,6 +53,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isOnPersonsPage = location.pathname === '/persons'
   const isOnPersonDetailPage = location.pathname.startsWith('/persons/') && location.pathname !== '/persons'
 
+  // Check if we're on spends page
+  const isOnSpendsPage = location.pathname === '/spends'
+
   // Handle plus button click
   const handlePlusClick = () => {
     if (isOnSuppliersPage) {
@@ -62,6 +65,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     } else if (isOnSupplierDetailPage) {
       // Show purchase/payment menu
       setShowPlusMenu(true)
+    } else if (isOnPersonsPage) {
+      // Navigate to add new person
+      navigate('/persons?add=true')
+    } else if (isOnSpendsPage) {
+      // Navigate to add new spend
+      navigate('/spends?add=true')
     }
   }
 
@@ -99,18 +108,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Dashboard', path: '/', icon: Home },
     { name: 'Suppliers', path: '/suppliers', icon: Users },
     { name: 'Persons', path: '/persons', icon: User },
-    { name: 'Transactions', path: '/transactions', icon: Receipt },
+    { name: 'Spends', path: '/spends', icon: DollarSign },
     { name: 'Reports', path: '/reports', icon: FileText },
     { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
     { name: 'Documentation', path: '/documentation', icon: Book },
-  ]
-
-  const mobileNavigation = [
-    { name: 'Dashboard', path: '/', icon: Home },
-    { name: 'Transactions', path: '/transactions', icon: Receipt },
-    { name: 'Suppliers', path: '/suppliers', icon: Users },
-    { name: 'Persons', path: '/persons', icon: User },
-    { name: 'More', path: '#', icon: MoreVertical },
   ]
 
   const isActivePath = (path: string) => {
@@ -121,31 +122,63 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   // Dynamic mobile navigation based on current page
-  let dynamicMobileNavigation = [...mobileNavigation]
-  if (isOnSuppliersPage || isOnSupplierDetailPage) {
-    dynamicMobileNavigation = [
+  const getBaseNavigation = () => {
+    const defaultNav = [
       { name: 'Dashboard', path: '/', icon: Home },
-      { name: 'Transactions', path: '/transactions', icon: Receipt },
-      { name: 'Add Supplier', path: '#', icon: Plus },
+      { name: 'Spends', path: '/spends', icon: DollarSign },
+      { name: 'Suppliers', path: '/suppliers', icon: Users },
       { name: 'Persons', path: '/persons', icon: User },
       { name: 'More', path: '#', icon: MoreVertical },
     ]
+
+    // When on spends page: Dashboard, Suppliers, Spends, Persons, More
+    if (isOnSpendsPage) {
+      return [
+        { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'Suppliers', path: '/suppliers', icon: Users },
+        { name: 'Spends', path: '/spends', icon: DollarSign },
+        { name: 'Persons', path: '/persons', icon: User },
+        { name: 'More', path: '#', icon: MoreVertical },
+      ]
+    }
+
+    // When on persons page: Dashboard, Spends, Persons, Suppliers, More
+    if (isOnPersonsPage) {
+      return [
+        { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'Spends', path: '/spends', icon: DollarSign },
+        { name: 'Persons', path: '/persons', icon: User },
+        { name: 'Suppliers', path: '/suppliers', icon: Users },
+        { name: 'More', path: '#', icon: MoreVertical },
+      ]
+    }
+
+    // When on suppliers page: keep default navigation, just show + at suppliers position
+    if (isOnSuppliersPage) {
+      return defaultNav
+    }
+
+    return defaultNav
+  }
+
+  const baseNavigation = getBaseNavigation()
+
+  // Determine which position should have the plus button
+  let plusButtonIndex = -1
+  let plusButtonType = ''
+
+  if (isOnSuppliersPage || isOnSupplierDetailPage) {
+    plusButtonIndex = 2 // Suppliers position (index 2 in default navigation)
+    plusButtonType = 'Add Supplier'
   } else if (isOnPersonsPage) {
-    dynamicMobileNavigation = [
-      { name: 'Dashboard', path: '/', icon: Home },
-      { name: 'Transactions', path: '/transactions', icon: Receipt },
-      { name: 'Add Person', path: '#', icon: Plus },
-      { name: 'Suppliers', path: '/suppliers', icon: Users },
-      { name: 'More', path: '#', icon: MoreVertical },
-    ]
+    plusButtonIndex = 2 // Persons position (index 2 in rearranged navigation)
+    plusButtonType = 'Add Person'
   } else if (isOnPersonDetailPage) {
-    dynamicMobileNavigation = [
-      { name: 'Dashboard', path: '/', icon: Home },
-      { name: 'Transactions', path: '/transactions', icon: Receipt },
-      { name: 'Add Transaction', path: '#', icon: Plus },
-      { name: 'Suppliers', path: '/suppliers', icon: Users },
-      { name: 'More', path: '#', icon: MoreVertical },
-    ]
+    plusButtonIndex = 2 // Persons position (index 2 in rearranged navigation)
+    plusButtonType = 'Add Transaction'
+  } else if (isOnSpendsPage) {
+    plusButtonIndex = 2 // Spends position (index 2 in rearranged navigation)
+    plusButtonType = 'Add Spend'
   }
 
   // Close More menu when clicking outside
@@ -234,16 +267,71 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-pb">
         <div className="flex items-center justify-around px-1 py-3">
-          {dynamicMobileNavigation.map((item) => {
+          {baseNavigation.map((item, index) => {
             const isActive = isActivePath(item.path)
-            
+
+            // Check if this position should have the plus button
+            if (index === plusButtonIndex) {
+              if (plusButtonType === 'Add Supplier') {
+                return (
+                  <button
+                    key={`plus-${index}`}
+                    onClick={handlePlusClick}
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    title="Add Supplier"
+                  >
+                    <Plus className="h-7 w-7 text-white" />
+                  </button>
+                )
+              }
+
+              if (plusButtonType === 'Add Person') {
+                return (
+                  <button
+                    key={`plus-${index}`}
+                    onClick={() => navigate('/persons?add=true')}
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    title="Add Person"
+                  >
+                    <Plus className="h-7 w-7 text-white" />
+                  </button>
+                )
+              }
+
+              if (plusButtonType === 'Add Spend') {
+                return (
+                  <button
+                    key={`plus-${index}`}
+                    onClick={() => navigate('/spends?add=true')}
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    title="Add Spend"
+                  >
+                    <Plus className="h-7 w-7 text-white" />
+                  </button>
+                )
+              }
+
+              if (plusButtonType === 'Add Transaction') {
+                return (
+                  <button
+                    key={`plus-${index}`}
+                    onClick={() => setShowPersonMenu(!showPersonMenu)}
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    title="Add Transaction"
+                  >
+                    <Plus className="h-7 w-7 text-white" />
+                  </button>
+                )
+              }
+            }
+
             // Special handling for More button
             if (item.name === 'More') {
               return (
                 <button
                   key={item.name}
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
-                  className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 ${
+                  className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 ${
                     showMoreMenu
                       ? 'text-blue-600 bg-blue-50 transform scale-110'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 active:scale-95'
@@ -254,70 +342,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </button>
               )
             }
-            
-            // Special handling for Add Transaction button
-            if (item.name === 'Add Transaction') {
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => setShowPersonMenu(!showPersonMenu)}
-                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 bg-blue-600 text-white transform scale-110"
-                  title="Add Transaction"
-                >
-                  <Plus className="h-6 w-6 text-white" />
-                </button>
-              )
-            }
-            
-            // Special handling for Add Supplier button
-            if (item.name === 'Add Supplier') {
-              return (
-                <button
-                  key={item.name}
-                  onClick={handlePlusClick}
-                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 bg-blue-600 text-white transform scale-110"
-                  title="Add Supplier"
-                >
-                  <Plus className="h-6 w-6 text-white" />
-                </button>
-              )
-            }
-            
-            // Special handling for Add Person button
-            if (item.name === 'Add Person') {
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => navigate('/persons?add=true')}
-                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 bg-blue-600 text-white transform scale-110"
-                  title="Add Person"
-                >
-                  <Plus className="h-6 w-6 text-white" />
-                </button>
-              )
-            }
-            
-            // Special handling for Suppliers button
-            if (item.path === '/suppliers' && (isOnSuppliersPage || isOnSupplierDetailPage)) {
-              return (
-                <button
-                  key={item.name}
-                  onClick={handlePlusClick}
-                  className="flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 bg-blue-600 text-white transform scale-110"
-                  title={isOnSuppliersPage ? "Add Supplier" : "Quick Actions"}
-                >
-                  <Plus className="h-6 w-6 text-white" />
-                </button>
-              )
-            }
-            
+
             // Regular navigation items
             const Icon = item.icon
             return (
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 min-w-0 flex-1 mx-1 ${
+                className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 ${
                   isActive
                     ? 'text-blue-600 bg-blue-50 transform scale-110'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 active:scale-95'
@@ -446,6 +478,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               <FileText className="h-4 w-4 mr-3 text-gray-500" />
               Reports
+            </button>
+            <button
+              onClick={() => {
+                navigate('/transactions')
+                setShowMoreMenu(false)
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+            >
+              <Receipt className="h-4 w-4 mr-3 text-gray-500" />
+              Transactions
             </button>
             <button
               onClick={() => {

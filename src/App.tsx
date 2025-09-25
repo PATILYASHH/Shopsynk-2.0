@@ -14,6 +14,7 @@ import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
 import Persons from './pages/Persons'
 import PersonDetail from './pages/PersonDetail'
+import Spends from './pages/Spends'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
 import DataStorage from './pages/DataStorage'
@@ -26,7 +27,7 @@ function App() {
   useEffect(() => {
     // Check if this is a PWA launch
     const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                  (window.navigator as any).standalone === true ||
+                  (window.navigator as { standalone?: boolean }).standalone === true ||
                   document.referrer.includes('android-app://') ||
                   window.location.search.includes('utm_source=pwa')
 
@@ -67,6 +68,7 @@ function App() {
                         <Route path="/suppliers/:id" element={<SupplierDetail />} />
                         <Route path="/persons" element={<Persons />} />
                         <Route path="/persons/:id" element={<PersonDetail />} />
+                        <Route path="/spends" element={<Spends />} />
                         <Route path="/transactions" element={<Transactions />} />
                         <Route path="/reports" element={<Reports />} />
                         <Route path="/data-storage" element={<DataStorage />} />

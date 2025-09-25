@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
+import { User, AuthError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  signUp: (email: string, password: string) => Promise<any>
-  signIn: (email: string, password: string) => Promise<any>
+  signUp: (email: string, password: string) => Promise<{ data: any; error: string | null }>
+  signIn: (email: string, password: string) => Promise<{ data: any; error: string | null }>
   signOut: () => Promise<void>
+  resendVerification: (email: string) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -18,6 +19,28 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
+}
+
+// Helper function to convert Supabase auth errors to user-friendly messages
+const getAuthErrorMessage = (error: AuthError): string => {
+  switch (error.message) {
+    case 'Invalid login credentials':
+      return 'Invalid email or password. Please check your credentials and try again.'
+    case 'Email not confirmed':
+      return 'Please check your email and click the verification link before signing in.'
+    case 'User already registered':
+      return 'An account with this email already exists. Please sign in instead.'
+    case 'Password should be at least 6 characters':
+      return 'Password must be at least 6 characters long.'
+    case 'Invalid email':
+      return 'Please enter a valid email address.'
+    case 'Too many requests':
+      return 'Too many login attempts. Please wait a few minutes before trying again.'
+    case 'Signup is disabled':
+      return 'New account registration is currently disabled. Please contact support.'
+    default:
+      return error.message || 'An unexpected error occurred. Please try again.'
+  }
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -33,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setUser(session?.user ?? null)
         setLoading(false)
       }
@@ -43,19 +66,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      })
+
+      if (error) {
+        return { data: null, error: getAuthErrorMessage(error) }
+      }
+
+      return { data, error: null }
+    } catch {
+      return { data: null, error: 'An unexpected error occurred. Please try again.' }
+    }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (error) {
+        return { data: null, error: getAuthErrorMessage(error) }
+      }
+
+      return { data, error: null }
+    } catch {
+      return { data: null, error: 'An unexpected error occurred. Please try again.' }
+    }
+  }
+
+  const resendVerification = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email
+      })
+
+      if (error) {
+        return { error: getAuthErrorMessage(error) }
+      }
+
+      return { error: null }
+    } catch {
+      return { error: 'Failed to resend verification email. Please try again.' }
+    }
   }
 
   const signOut = async () => {
@@ -68,7 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signUp,
     signIn,
-    signOut
+    signOut,
+    resendVerification
   }
 
   return (

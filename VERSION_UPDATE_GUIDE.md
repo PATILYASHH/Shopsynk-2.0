@@ -2,7 +2,7 @@
 
 This guide explains how to update the version information across the Shopsynk application.
 
-## Current Version: 1.3 - Person Money Tracking
+## Current Version: 1.4 - The Spends update
 
 ## Files to Update When Releasing a New Version:on Update Guide
 

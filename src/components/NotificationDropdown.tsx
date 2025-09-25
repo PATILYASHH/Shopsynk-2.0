@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Bell, X, Check, Trash2, MoreVertical } from 'lucide-react'
+import { Bell, X, Check, Trash2 } from 'lucide-react'
 import { useNotifications } from '../contexts/NotificationContext'
 import { NotificationData } from '../types/notifications'
 import { formatDistanceToNow } from 'date-fns'

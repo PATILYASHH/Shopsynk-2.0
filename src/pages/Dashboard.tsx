@@ -16,6 +16,7 @@ interface DashboardStats {
   totalSuppliers: number
   totalTransactions: number
   pendingPayments: number
+  totalSpends: number
   recentTransactions: any[]
   upcomingDues: any[]
 }
@@ -28,6 +29,7 @@ const Dashboard = () => {
     totalSuppliers: 0,
     totalTransactions: 0,
     pendingPayments: 0,
+    totalSpends: 0,
     recentTransactions: [],
     upcomingDues: []
   })
@@ -167,11 +169,20 @@ const Dashboard = () => {
         })
         .slice(0, 10)
 
+      // Fetch total spends
+      const { data: spendsData } = await supabase
+        .from('spends')
+        .select('amount')
+        .eq('user_id', user.id)
+
+      const totalSpends = spendsData?.reduce((sum, spend) => sum + parseFloat(spend.amount), 0) || 0
+
       setStats({
         totalDues: Math.max(0, totalDues),
         totalSuppliers: suppliersCount || 0,
         totalTransactions: transactionsCount || 0,
         pendingPayments,
+        totalSpends,
         recentTransactions: recentTransactions || [],
         upcomingDues: outstandingPayments || []
       })
@@ -226,7 +237,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards - Mobile-first grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-center">
             <DollarSign className="h-6 w-6 text-red-500 mx-auto mb-2" />
@@ -264,6 +275,17 @@ const Dashboard = () => {
             <p className="text-lg font-bold text-orange-600">{stats.pendingPayments}</p>
           </div>
         </div>
+
+        <button
+          onClick={() => navigate('/spends')}
+          className="bg-white rounded-lg p-4 border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors w-full"
+        >
+          <div className="text-center">
+            <DollarSign className="h-6 w-6 text-purple-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500 mb-1">Total Spends</p>
+            <p className="text-lg font-bold text-purple-600">₹{Math.round(stats.totalSpends).toLocaleString()}</p>
+          </div>
+        </button>
       </div>
 
       {/* Single column layout for mobile, two columns for larger screens */}

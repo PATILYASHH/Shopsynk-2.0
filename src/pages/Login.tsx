@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -9,22 +9,80 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { signIn } = useAuth()
+  const [success, setSuccess] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const { signIn, resendVerification } = useAuth()
   const navigate = useNavigate()
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess('')
+
+    // Client-side validation
+    if (!email.trim()) {
+      setError('Email address is required')
+      setLoading(false)
+      return
+    }
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address')
+      setLoading(false)
+      return
+    }
+
+    if (!password.trim()) {
+      setError('Password is required')
+      setLoading(false)
+      return
+    }
 
     try {
-      const { error } = await signIn(email, password)
-      if (error) throw error
-      navigate('/')
-    } catch (error: any) {
-      setError(error.message)
+      const { error: signInError } = await signIn(email, password)
+      if (signInError) {
+        setError(signInError)
+        return
+      }
+
+      // Success - user will be redirected by auth state change
+      setSuccess('Sign in successful! Redirecting...')
+      setTimeout(() => navigate('/'), 1000)
+    } catch {
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email.trim() || !validateEmail(email)) {
+      setError('Please enter a valid email address first')
+      return
+    }
+
+    setResendLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const { error: resendError } = await resendVerification(email)
+      if (resendError) {
+        setError(resendError)
+        return
+      }
+
+      setSuccess('Verification email sent! Please check your inbox.')
+    } catch {
+      setError('Failed to resend verification email. Please try again.')
+    } finally {
+      setResendLoading(false)
     }
   }
 
@@ -34,9 +92,9 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <img 
-                src="/pwa opning/shopsynk.png" 
-                alt="Shopsynk Logo" 
+              <img
+                src="/pwa opning/shopsynk.png"
+                alt="Shopsynk Logo"
                 className="w-16 h-16 object-contain"
               />
             </div>
@@ -45,8 +103,42 @@ const Login = () => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
+            <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-red-800 font-medium text-sm">Sign In Failed</p>
+                  <p className="text-red-700 text-sm mt-1">{error}</p>
+                  {error.includes('verification') && email && (
+                    <button
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="mt-2 text-sm text-red-600 hover:text-red-800 underline disabled:opacity-50 flex items-center"
+                    >
+                      {resendLoading ? (
+                        <>
+                          <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        'Resend verification email'
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-4 rounded-lg bg-green-50 border border-green-200">
+              <div className="flex items-start">
+                <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-green-800 font-medium text-sm">Success</p>
+                  <p className="text-green-700 text-sm mt-1">{success}</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -61,9 +153,12 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    error && !email ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your email"
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -78,14 +173,18 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    error && !password ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   placeholder="Enter your password"
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                  disabled={loading}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
