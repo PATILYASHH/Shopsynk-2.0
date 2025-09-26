@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Bell, X, Check, Trash2 } from 'lucide-react'
 import { useNotifications } from '../contexts/NotificationContext'
 import { NotificationData } from '../types/notifications'

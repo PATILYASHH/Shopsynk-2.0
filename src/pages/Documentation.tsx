@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { VERSION_NAME, getVersionDisplay } from '../constants/version'
 import { 
   Book, 
+  Bug,
   User, 
   FileText, 
   Shield, 
@@ -31,13 +32,51 @@ import {
 // Version History Data
 const versionHistory = [
   {
+    id: 'v1.4.2',
+    version: '1.4.2',
+    name: 'Bugs Fixed',
+    date: 'September 26, 2025',
+    type: 'patch',
+    color: 'blue',
+    current: true,
+    description: 'Critical bug fixes and type safety improvements for enhanced stability and performance.',
+    features: [
+      {
+        category: 'Bug Fixes',
+        icon: Bug,
+        color: 'blue',
+        items: [
+          'Fixed TypeScript errors in transaction filtering logic',
+          'Resolved property access issues on union types',
+          'Removed unused imports to eliminate warnings',
+          'Fixed Reports page tab switching for Persons and Spends',
+          'Improved type safety across transaction components'
+        ]
+      },
+      {
+        category: 'Code Quality',
+        icon: Code,
+        color: 'purple',
+        items: [
+          'Enhanced type guards for transaction property access',
+          'Cleaned up import statements',
+          'Improved error handling in data filtering',
+          'Better TypeScript compliance throughout the application'
+        ]
+      }
+    ],
+    impact: 'This patch release addresses critical TypeScript errors and improves overall application stability. The fixes ensure proper type safety when accessing transaction properties and eliminate compilation warnings, resulting in a more robust and maintainable codebase.',
+    breaking: false,
+    migration: []
+  },
+  {
     id: 'v1.3.2',
     version: '1.3.2',
     name: 'Mobile Logout Enhancement',
     date: 'September 24, 2025',
     type: 'minor',
     color: 'red',
-    current: true,
+    current: false,
     description: 'Enhanced mobile user experience with logout functionality accessible from the mobile navigation menu.',
     features: [
       {

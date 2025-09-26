@@ -20,6 +20,7 @@ import Reports from './pages/Reports'
 import DataStorage from './pages/DataStorage'
 import Documentation from './pages/Documentation'
 import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 
 function App() {
   const [showSplash, setShowSplash] = useState(false)
@@ -74,6 +75,7 @@ function App() {
                         <Route path="/data-storage" element={<DataStorage />} />
                         <Route path="/documentation" element={<Documentation />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Routes>
                     </Layout>

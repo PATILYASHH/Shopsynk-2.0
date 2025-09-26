@@ -101,7 +101,7 @@ const Reports = () => {
     }
   }, [showExportDropdown])
 
-  const fetchReportData = async (filter?: 'suppliers' | 'persons') => {
+  const fetchReportData = async (filter?: 'suppliers' | 'persons' | 'spends') => {
     if (!user) return
 
     const currentFilter = filter || reportData.categoryFilter
@@ -645,7 +645,7 @@ const Reports = () => {
           <button
             onClick={() => {
               setReportData(prev => ({ ...prev, categoryFilter: 'suppliers' }))
-              setTimeout(() => fetchReportData(), 100)
+              fetchReportData('suppliers')
             }}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               reportData.categoryFilter === 'suppliers'
@@ -659,7 +659,7 @@ const Reports = () => {
           <button
             onClick={() => {
               setReportData(prev => ({ ...prev, categoryFilter: 'persons' }))
-              setTimeout(() => fetchReportData(), 100)
+              fetchReportData('persons')
             }}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               reportData.categoryFilter === 'persons'
@@ -673,7 +673,7 @@ const Reports = () => {
           <button
             onClick={() => {
               setReportData(prev => ({ ...prev, categoryFilter: 'spends' }))
-              setTimeout(() => fetchReportData(), 100)
+              fetchReportData('spends')
             }}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               reportData.categoryFilter === 'spends'

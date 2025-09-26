@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase, Transaction, Supplier, LoanTransaction } from '../lib/supabase'
+import { supabase, Transaction, Supplier, LoanTransaction, Spend } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { BusinessOwnersService, BusinessOwner } from '../lib/businessOwners'
 import { NotificationService } from '../services/NotificationService'
@@ -15,19 +15,21 @@ import {
   Trash2,
   MoreVertical,
   Users,
-  User
+  User,
+  DollarSign
 } from 'lucide-react'
 
 const Transactions = () => {
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loanTransactions, setLoanTransactions] = useState<LoanTransaction[]>([])
+  const [spends, setSpends] = useState<Spend[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [activeTab, setActiveTab] = useState<'suppliers' | 'persons'>('suppliers') // 'suppliers', 'persons'
+  const [activeTab, setActiveTab] = useState<'suppliers' | 'persons' | 'spends'>('suppliers')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [showDropdown, setShowDropdown] = useState<string | null>(null)
@@ -90,9 +92,19 @@ const Transactions = () => {
       // Fetch business owners for dropdown
       const businessOwnersService = BusinessOwnersService.getInstance()
       const owners = await businessOwnersService.getBusinessOwners(user.id)
+
+      // Fetch personal spends
+      const { data: spendsData, error: spendsError } = await supabase
+        .from('spends')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+
+      if (spendsError) throw spendsError
       
       setTransactions(transactionsData || [])
       setLoanTransactions(loanTransactionsData || [])
+      setSpends(spendsData || [])
       setSuppliers(suppliersData || [])
       setBusinessOwners(owners || [])
     } catch (error) {
@@ -202,23 +214,35 @@ const Transactions = () => {
   // Combine and filter all transactions
   const allTransactions = [
     ...transactions.map(t => ({ ...t, transactionType: 'supplier' as const })),
-    ...loanTransactions.map(t => ({ ...t, transactionType: 'person' as const }))
+    ...loanTransactions.map(t => ({ ...t, transactionType: 'person' as const })),
+    ...spends.map(s => ({ ...s, transactionType: 'spend' as const, type: s.category }))
   ]
 
   const filteredTransactions = allTransactions.filter((transaction) => {
     const matchesSearch = transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (transaction.transactionType === 'supplier' && transaction.supplier?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          (transaction.transactionType === 'person' && transaction.person?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         transaction.owner?.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
+                         (transaction.transactionType === 'spend' && 'category' in transaction && transaction.category?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (transaction.transactionType !== 'spend' && transaction.owner?.owner_name?.toLowerCase().includes(searchTerm.toLowerCase()))
     
-    const matchesTab = transaction.transactionType === activeTab.slice(0, -1) // 'suppliers' -> 'supplier', 'persons' -> 'person'
+    const matchesTab = activeTab === 'spends' 
+      ? transaction.transactionType === 'spend'
+      : transaction.transactionType === activeTab.slice(0, -1) // 'suppliers' -> 'supplier', 'persons' -> 'person'
     
-    const matchesType = typeFilter === 'all' || transaction.type === typeFilter
+    const matchesType = typeFilter === 'all' || 
+                       (activeTab === 'spends' ? ('category' in transaction && transaction.category === typeFilter) : transaction.type === typeFilter)
     
     return matchesSearch && matchesTab && matchesType
-  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }).sort((a, b) => {
+    const dateA = a.transactionType === 'spend' ? new Date(a.date) : new Date(a.created_at)
+    const dateB = b.transactionType === 'spend' ? new Date(b.date) : new Date(b.created_at)
+    return dateB.getTime() - dateA.getTime()
+  })
 
   const getTransactionIcon = (type: string, transactionType: string) => {
+    if (transactionType === 'spend') {
+      return <DollarSign className="h-4 w-4 text-green-600" />
+    }
     if (transactionType === 'person') {
       switch (type) {
         case 'Gives':
@@ -242,6 +266,9 @@ const Transactions = () => {
   }
 
   const getTransactionTypeLabel = (type: string, transactionType: string) => {
+    if (transactionType === 'spend') {
+      return type // For spends, type is the category
+    }
     if (transactionType === 'person') {
       switch (type) {
         case 'Gives':
@@ -316,6 +343,17 @@ const Transactions = () => {
             <User className="h-4 w-4 inline mr-2" />
             Persons
           </button>
+          <button
+            onClick={() => setActiveTab('spends')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'spends'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <DollarSign className="h-4 w-4 inline mr-2" />
+            Spends
+          </button>
         </nav>
       </div>
 
@@ -345,10 +383,25 @@ const Transactions = () => {
                 <option value="new_purchase">Purchases</option>
                 <option value="pay_due">Payments</option>
               </>
-            ) : (
+            ) : activeTab === 'persons' ? (
               <>
                 <option value="Gives">Gives</option>
                 <option value="Takes">Takes</option>
+              </>
+            ) : (
+              <>
+                <option value="General">General</option>
+                <option value="Food & Dining">Food & Dining</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills & Utilities">Bills & Utilities</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Travel">Travel</option>
+                <option value="Personal Care">Personal Care</option>
+                <option value="Home & Garden">Home & Garden</option>
+                <option value="Other">Other</option>
               </>
             )}
           </select>
@@ -380,14 +433,22 @@ const Transactions = () => {
                         <h3 className="font-medium text-gray-900 truncate">
                           {transaction.transactionType === 'supplier' 
                             ? transaction.supplier?.name 
-                            : transaction.person?.name}
+                            : transaction.transactionType === 'person'
+                            ? transaction.person?.name
+                            : transaction.description}
                         </h3>
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                           transaction.transactionType === 'supplier'
                             ? 'bg-blue-100 text-blue-700'
-                            : 'bg-green-100 text-green-700'
+                            : transaction.transactionType === 'person'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-purple-100 text-purple-700'
                         }`}>
-                          {transaction.transactionType === 'supplier' ? 'Supplier' : 'Person'}
+                          {transaction.transactionType === 'supplier' 
+                            ? 'Supplier' 
+                            : transaction.transactionType === 'person'
+                            ? 'Person'
+                            : 'Spend'}
                         </span>
                       </div>
                       <p className={`font-semibold text-lg ${
@@ -410,9 +471,11 @@ const Transactions = () => {
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <div className="flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
-                        {formatDate(transaction.created_at)}
+                        {transaction.transactionType === 'spend' 
+                          ? formatDate(transaction.date) 
+                          : formatDate(transaction.created_at)}
                       </div>
-                      {transaction.owner?.owner_name && (
+                      {transaction.transactionType !== 'spend' && transaction.owner?.owner_name && (
                         <span className="text-blue-600 font-medium">
                           by {transaction.owner.owner_name}
                         </span>

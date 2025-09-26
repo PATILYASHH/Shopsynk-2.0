@@ -5,7 +5,7 @@ interface NavigationItem {
   id: string
   name: string
   path: string
-  icon: React.ComponentType<any>
+  iconName: string
   enabled: boolean
 }
 
@@ -13,35 +13,80 @@ const Settings: React.FC = () => {
   const [featureSettings, setFeatureSettings] = useState({
     suppliers: true,
     spends: true,
-    persons: true,
-    reports: true,
-    dataStorage: true,
-    documentation: true
+    persons: true
+  })
+
+  const [replacementSettings, setReplacementSettings] = useState({
+    suppliers: 'reports',
+    spends: 'transactions', 
+    persons: 'data-storage'
   })
 
   const [menuOrder, setMenuOrder] = useState<NavigationItem[]>([
-    { id: 'dashboard', name: 'Dashboard', path: '/', icon: Home, enabled: true },
-    { id: 'suppliers', name: 'Suppliers', path: '/suppliers', icon: Users, enabled: true },
-    { id: 'spends', name: 'Spends', path: '/spends', icon: DollarSign, enabled: true },
-    { id: 'persons', name: 'Persons', path: '/persons', icon: User, enabled: true },
-    { id: 'reports', name: 'Reports', path: '/reports', icon: FileText, enabled: true },
-    { id: 'dataStorage', name: 'Data Storage', path: '/data-storage', icon: HardDrive, enabled: true },
-    { id: 'documentation', name: 'Documentation', path: '/documentation', icon: Book, enabled: true }
+    { id: 'dashboard', name: 'Dashboard', path: '/', iconName: 'Home', enabled: true },
+    { id: 'suppliers', name: 'Suppliers', path: '/suppliers', iconName: 'Users', enabled: true },
+    { id: 'spends', name: 'Spends', path: '/spends', iconName: 'DollarSign', enabled: true },
+    { id: 'persons', name: 'Persons', path: '/persons', iconName: 'User', enabled: true },
+    { id: 'transactions', name: 'Transactions', path: '/transactions', iconName: 'Receipt', enabled: true },
+    { id: 'reports', name: 'Reports', path: '/reports', iconName: 'FileText', enabled: true },
+    { id: 'more', name: 'More', path: '#', iconName: 'MoreVertical', enabled: true }
   ])
 
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
 
+  // Function to get icon component by name
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case 'Home': return Home
+      case 'Users': return Users
+      case 'DollarSign': return DollarSign
+      case 'User': return User
+      case 'FileText': return FileText
+      case 'HardDrive': return HardDrive
+      case 'Book': return Book
+      default: return Home
+    }
+  }
+
   // Load settings from localStorage on component mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('shopsynk_settings')
-    if (savedSettings) {
-      try {
+    try {
+      const savedSettings = localStorage.getItem('shopsynk_settings')
+      if (savedSettings) {
         const parsed = JSON.parse(savedSettings)
-        setFeatureSettings(parsed.features || featureSettings)
-        setMenuOrder(parsed.menuOrder || menuOrder)
-      } catch (error) {
-        console.error('Error loading settings:', error)
+        if (parsed.features) {
+          setFeatureSettings(parsed.features)
+          if (parsed.replacements) {
+            setReplacementSettings(parsed.replacements)
+          }
+          // Sync menu order with loaded feature settings
+          if (parsed.menuOrder) {
+            setMenuOrder(parsed.menuOrder.map((item: NavigationItem) => ({
+              ...item,
+              enabled: parsed.features[item.id] !== false // Default to true if not specified
+            })))
+          }
+        } else if (parsed.menuOrder) {
+          setMenuOrder(parsed.menuOrder)
+        }
       }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+      // Reset to defaults if there's an error
+      setFeatureSettings({
+        suppliers: true,
+        spends: true,
+        persons: true
+      })
+      setMenuOrder([
+        { id: 'dashboard', name: 'Dashboard', path: '/', iconName: 'Home', enabled: true },
+        { id: 'suppliers', name: 'Suppliers', path: '/suppliers', iconName: 'Users', enabled: true },
+        { id: 'spends', name: 'Spends', path: '/spends', iconName: 'DollarSign', enabled: true },
+        { id: 'persons', name: 'Persons', path: '/persons', iconName: 'User', enabled: true },
+        { id: 'transactions', name: 'Transactions', path: '/transactions', iconName: 'Receipt', enabled: true },
+        { id: 'reports', name: 'Reports', path: '/reports', iconName: 'FileText', enabled: true },
+        { id: 'more', name: 'More', path: '#', iconName: 'MoreVertical', enabled: true }
+      ])
     }
   }, [])
 
@@ -49,21 +94,26 @@ const Settings: React.FC = () => {
   useEffect(() => {
     const settings = {
       features: featureSettings,
+      replacements: replacementSettings,
       menuOrder: menuOrder
     }
     localStorage.setItem('shopsynk_settings', JSON.stringify(settings))
-  }, [featureSettings, menuOrder])
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('settingsChanged'))
+  }, [featureSettings, replacementSettings, menuOrder])
 
   const handleFeatureToggle = (feature: keyof typeof featureSettings) => {
-    setFeatureSettings(prev => ({
-      ...prev,
-      [feature]: !prev[feature]
-    }))
-
-    // Update menu order enabled status
-    setMenuOrder(prev => prev.map(item =>
-      item.id === feature ? { ...item, enabled: !item.enabled } : item
-    ))
+    setFeatureSettings(prev => {
+      const newSettings = {
+        ...prev,
+        [feature]: !prev[feature]
+      }
+      // Update menu order to match the new feature settings
+      setMenuOrder(currentMenu => currentMenu.map(item =>
+        item.id === feature ? { ...item, enabled: newSettings[feature] } : item
+      ))
+      return newSettings
+    })
   }
 
   const handleDragStart = (e: React.DragEvent, itemId: string) => {
@@ -100,20 +150,23 @@ const Settings: React.FC = () => {
     setFeatureSettings({
       suppliers: true,
       spends: true,
-      persons: true,
-      reports: true,
-      dataStorage: true,
-      documentation: true
+      persons: true
+    })
+
+    setReplacementSettings({
+      suppliers: 'reports',
+      spends: 'transactions',
+      persons: 'data-storage'
     })
 
     setMenuOrder([
-      { id: 'dashboard', name: 'Dashboard', path: '/', icon: Home, enabled: true },
-      { id: 'suppliers', name: 'Suppliers', path: '/suppliers', icon: Users, enabled: true },
-      { id: 'spends', name: 'Spends', path: '/spends', icon: DollarSign, enabled: true },
-      { id: 'persons', name: 'Persons', path: '/persons', icon: User, enabled: true },
-      { id: 'reports', name: 'Reports', path: '/reports', icon: FileText, enabled: true },
-      { id: 'dataStorage', name: 'Data Storage', path: '/data-storage', icon: HardDrive, enabled: true },
-      { id: 'documentation', name: 'Documentation', path: '/documentation', icon: Book, enabled: true }
+      { id: 'dashboard', name: 'Dashboard', path: '/', iconName: 'Home', enabled: true },
+      { id: 'suppliers', name: 'Suppliers', path: '/suppliers', iconName: 'Users', enabled: true },
+      { id: 'spends', name: 'Spends', path: '/spends', iconName: 'DollarSign', enabled: true },
+      { id: 'persons', name: 'Persons', path: '/persons', iconName: 'User', enabled: true },
+      { id: 'transactions', name: 'Transactions', path: '/transactions', iconName: 'Receipt', enabled: true },
+      { id: 'reports', name: 'Reports', path: '/reports', iconName: 'FileText', enabled: true },
+      { id: 'more', name: 'More', path: '#', iconName: 'MoreVertical', enabled: true }
     ])
   }
 
@@ -130,118 +183,118 @@ const Settings: React.FC = () => {
         <p className="text-sm text-gray-600 mb-6">Enable or disable features you want to use in the app.</p>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Users className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="font-medium text-gray-900">Suppliers</p>
-                <p className="text-sm text-gray-600">Manage suppliers and transactions</p>
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <Users className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Suppliers</p>
+                  <p className="text-sm text-gray-600">Manage suppliers and transactions</p>
+                </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={featureSettings.suppliers}
+                  onChange={() => handleFeatureToggle('suppliers')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featureSettings.suppliers}
-                onChange={() => handleFeatureToggle('suppliers')}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+            {!featureSettings.suppliers && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Replace with:
+                </label>
+                <select
+                  value={replacementSettings.suppliers}
+                  onChange={(e) => setReplacementSettings(prev => ({ ...prev, suppliers: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="reports">Reports</option>
+                  <option value="transactions">Transactions</option>
+                  <option value="data-storage">Data Storage</option>
+                  <option value="documentation">Documentation</option>
+                </select>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <DollarSign className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium text-gray-900">Spends</p>
-                <p className="text-sm text-gray-600">Track personal expenses</p>
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Spends</p>
+                  <p className="text-sm text-gray-600">Track personal expenses</p>
+                </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={featureSettings.spends}
+                  onChange={() => handleFeatureToggle('spends')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featureSettings.spends}
-                onChange={() => handleFeatureToggle('spends')}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+            {!featureSettings.spends && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Replace with:
+                </label>
+                <select
+                  value={replacementSettings.spends}
+                  onChange={(e) => setReplacementSettings(prev => ({ ...prev, spends: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="transactions">Transactions</option>
+                  <option value="reports">Reports</option>
+                  <option value="data-storage">Data Storage</option>
+                  <option value="documentation">Documentation</option>
+                </select>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <User className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="font-medium text-gray-900">Persons</p>
-                <p className="text-sm text-gray-600">Manage persons and transactions</p>
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <User className="h-5 w-5 text-purple-600" />
+                <div>
+                  <p className="font-medium text-gray-900">Persons</p>
+                  <p className="text-sm text-gray-600">Manage persons and transactions</p>
+                </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={featureSettings.persons}
+                  onChange={() => handleFeatureToggle('persons')}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featureSettings.persons}
-                onChange={() => handleFeatureToggle('persons')}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <FileText className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="font-medium text-gray-900">Reports</p>
-                <p className="text-sm text-gray-600">View financial reports and analytics</p>
+            {!featureSettings.persons && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Replace with:
+                </label>
+                <select
+                  value={replacementSettings.persons}
+                  onChange={(e) => setReplacementSettings(prev => ({ ...prev, persons: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="data-storage">Data Storage</option>
+                  <option value="transactions">Transactions</option>
+                  <option value="reports">Reports</option>
+                  <option value="documentation">Documentation</option>
+                </select>
               </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featureSettings.reports}
-                onChange={() => handleFeatureToggle('reports')}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <HardDrive className="h-5 w-5 text-indigo-600" />
-              <div>
-                <p className="font-medium text-gray-900">Data Storage</p>
-                <p className="text-sm text-gray-600">Backup and manage your data</p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featureSettings.dataStorage}
-                onChange={() => handleFeatureToggle('dataStorage')}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <Book className="h-5 w-5 text-teal-600" />
-              <div>
-                <p className="font-medium text-gray-900">Documentation</p>
-                <p className="text-sm text-gray-600">Access help and documentation</p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={featureSettings.documentation}
-                onChange={() => handleFeatureToggle('documentation')}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
+            )}
           </div>
         </div>
       </div>
@@ -253,44 +306,53 @@ const Settings: React.FC = () => {
 
         <div className="space-y-3">
           {menuOrder.map((item) => {
-            const Icon = item.icon
-            return (
-              <div
-                key={item.id}
-                draggable={item.enabled}
-                onDragStart={(e) => handleDragStart(e, item.id)}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, item.id)}
-                onDragEnd={handleDragEnd}
-                className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-all ${
-                  draggedItem === item.id ? 'opacity-50' : ''
-                } ${!item.enabled ? 'opacity-50 bg-gray-50' : 'bg-white hover:bg-gray-50'} ${
-                  item.enabled ? 'cursor-move' : 'cursor-not-allowed'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  {item.enabled && (
-                    <GripVertical className="h-5 w-5 text-gray-400" />
-                  )}
-                  <Icon className={`h-5 w-5 ${item.enabled ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <div>
-                    <p className={`font-medium ${item.enabled ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {item.name}
-                    </p>
-                    {!item.enabled && (
-                      <p className="text-xs text-gray-400">Disabled</p>
+            try {
+              const Icon = getIconComponent(item.iconName)
+              return (
+                <div
+                  key={item.id}
+                  draggable={item.enabled}
+                  onDragStart={(e) => handleDragStart(e, item.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, item.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg transition-all ${
+                    draggedItem === item.id ? 'opacity-50' : ''
+                  } ${!item.enabled ? 'opacity-50 bg-gray-50' : 'bg-white hover:bg-gray-50'} ${
+                    item.enabled ? 'cursor-move' : 'cursor-not-allowed'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    {item.enabled && (
+                      <GripVertical className="h-5 w-5 text-gray-400" />
                     )}
+                    <Icon className={`h-5 w-5 ${item.enabled ? 'text-blue-600' : 'text-gray-400'}`} />
+                    <div>
+                      <p className={`font-medium ${item.enabled ? 'text-gray-900' : 'text-gray-500'}`}>
+                        {item.name}
+                      </p>
+                      {!item.enabled && (
+                        <p className="text-xs text-gray-400">Disabled</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      item.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {item.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    item.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {item.enabled ? 'Enabled' : 'Disabled'}
-                  </span>
+              )
+            } catch (error) {
+              console.error('Error rendering menu item:', item, error)
+              return (
+                <div key={item.id} className="p-4 border border-red-200 rounded-lg bg-red-50">
+                  <p className="text-red-600">Error loading menu item: {item.name}</p>
                 </div>
-              </div>
-            )
+              )
+            }
           })}
         </div>
 

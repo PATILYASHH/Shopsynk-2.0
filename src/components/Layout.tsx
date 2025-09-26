@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getVersionDisplay } from '../constants/version'
@@ -39,38 +39,152 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [featureSettings, setFeatureSettings] = useState({
     suppliers: true,
     spends: true,
-    persons: true,
-    reports: true,
-    dataStorage: true,
-    documentation: true
+    persons: true
+  })
+
+  const [replacementSettings, setReplacementSettings] = useState({
+    suppliers: 'reports',
+    spends: 'transactions',
+    persons: 'data-storage'
   })
 
   // Load feature settings from localStorage
   useEffect(() => {
-    const savedSettings = localStorage.getItem('shopsynk_settings')
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings)
-        setFeatureSettings(parsed.features || featureSettings)
-      } catch (error) {
-        console.error('Error loading feature settings:', error)
+    const loadSettings = () => {
+      const savedSettings = localStorage.getItem('shopsynk_settings')
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings)
+          if (parsed.features) {
+            setFeatureSettings(parsed.features)
+          }
+          if (parsed.replacements) {
+            setReplacementSettings(parsed.replacements)
+          }
+        } catch (error) {
+          console.error('Error loading feature settings:', error)
+        }
       }
     }
-  }, []) // Remove featureSettings from dependencies to avoid infinite loop
 
-  // Filter navigation based on feature settings
-  const getFilteredNavigation = (navItems: any[]) => {
-    return navItems.filter(item => {
-      if (item.path === '/') return true // Always show dashboard
-      if (item.path === '#') return true // Always show More button
-      if (item.path === '/suppliers') return featureSettings.suppliers
-      if (item.path === '/spends') return featureSettings.spends
-      if (item.path === '/persons') return featureSettings.persons
-      if (item.path === '/reports') return featureSettings.reports
-      if (item.path === '/data-storage') return featureSettings.dataStorage
-      if (item.path === '/documentation') return featureSettings.documentation
-      return true
-    })
+    // Load settings on mount
+    loadSettings()
+
+    // Listen for storage changes (when settings are updated in another tab/window)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'shopsynk_settings') {
+        loadSettings()
+      }
+    }
+
+    // Also listen for custom events when settings change in the same tab
+    const handleSettingsChange = () => {
+      loadSettings()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('settingsChanged', handleSettingsChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('settingsChanged', handleSettingsChange)
+    }
+  }, [])
+
+  // Filter navigation based on feature settings - replace disabled features with alternatives
+  const getFilteredNavigation = useMemo(() => {
+    return (navItems: any[]) => {
+      const result = [...navItems]
+      const usedReplacements = new Set<string>()
+
+      return result.map(item => {
+        if (item.path === '/spends' && !featureSettings.spends) {
+          const replacement = replacementSettings.spends
+          if (!usedReplacements.has(`/${replacement}`)) {
+            usedReplacements.add(`/${replacement}`)
+            return getReplacementItem(replacement)
+          } else {
+            // Fallback to another available replacement
+            const fallback = getFallbackReplacement(replacement, usedReplacements)
+            if (fallback) {
+              usedReplacements.add(`/${fallback}`)
+              return getReplacementItem(fallback)
+            } else {
+              // If no fallback available, use the first available option
+              const availableOptions = ['transactions', 'reports', 'data-storage', 'documentation']
+              const available = availableOptions.find(option => !usedReplacements.has(`/${option}`))
+              return available ? getReplacementItem(available) : getReplacementItem('reports')
+            }
+          }
+        }
+        if (item.path === '/suppliers' && !featureSettings.suppliers) {
+          const replacement = replacementSettings.suppliers
+          if (!usedReplacements.has(`/${replacement}`)) {
+            usedReplacements.add(`/${replacement}`)
+            return getReplacementItem(replacement)
+          } else {
+            // Fallback to another available replacement
+            const fallback = getFallbackReplacement(replacement, usedReplacements)
+            if (fallback) {
+              usedReplacements.add(`/${fallback}`)
+              return getReplacementItem(fallback)
+            } else {
+              // If no fallback available, use the first available option
+              const availableOptions = ['transactions', 'reports', 'data-storage', 'documentation']
+              const available = availableOptions.find(option => !usedReplacements.has(`/${option}`))
+              return available ? getReplacementItem(available) : getReplacementItem('transactions')
+            }
+          }
+        }
+        if (item.path === '/persons' && !featureSettings.persons) {
+          const replacement = replacementSettings.persons
+          if (!usedReplacements.has(`/${replacement}`)) {
+            usedReplacements.add(`/${replacement}`)
+            return getReplacementItem(replacement)
+          } else {
+            // Fallback to another available replacement
+            const fallback = getFallbackReplacement(replacement, usedReplacements)
+            if (fallback) {
+              usedReplacements.add(`/${fallback}`)
+              return getReplacementItem(fallback)
+            } else {
+              // If no fallback available, use the first available option
+              const availableOptions = ['transactions', 'reports', 'data-storage', 'documentation']
+              const available = availableOptions.find(option => !usedReplacements.has(`/${option}`))
+              return available ? getReplacementItem(available) : getReplacementItem('data-storage')
+            }
+          }
+        }
+        return item
+      })
+    }
+  }, [featureSettings, replacementSettings])
+
+  // Helper function to get replacement navigation item
+  const getReplacementItem = (replacement: string) => {
+    switch (replacement) {
+      case 'transactions':
+        return { name: 'Transactions', path: '/transactions', icon: Receipt }
+      case 'reports':
+        return { name: 'Reports', path: '/reports', icon: FileText }
+      case 'data-storage':
+        return { name: 'Data Storage', path: '/data-storage', icon: HardDrive }
+      case 'documentation':
+        return { name: 'Documentation', path: '/documentation', icon: Book }
+      default:
+        return { name: 'Reports', path: '/reports', icon: FileText }
+    }
+  }
+
+  // Helper function to get fallback replacement
+  const getFallbackReplacement = (current: string, used: Set<string>) => {
+    const options = ['transactions', 'reports', 'data-storage', 'documentation']
+    for (const option of options) {
+      if (option !== current && !used.has(`/${option}`)) {
+        return option
+      }
+    }
+    return null
   }
 
   const handleSignOut = async () => {
@@ -141,15 +255,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     window.dispatchEvent(event)
   }
 
-  const navigation = getFilteredNavigation([
-    { name: 'Dashboard', path: '/', icon: Home },
-    { name: 'Suppliers', path: '/suppliers', icon: Users },
-    { name: 'Persons', path: '/persons', icon: User },
-    { name: 'Spends', path: '/spends', icon: DollarSign },
-    { name: 'Reports', path: '/reports', icon: FileText },
-    { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
-    { name: 'Documentation', path: '/documentation', icon: Book },
-  ])
+  const navigation = useMemo(() => {
+    return getFilteredNavigation([
+      { name: 'Dashboard', path: '/', icon: Home },
+      { name: 'Suppliers', path: '/suppliers', icon: Users },
+      { name: 'Persons', path: '/persons', icon: User },
+      { name: 'Spends', path: '/spends', icon: DollarSign },
+      { name: 'Reports', path: '/reports', icon: FileText },
+      { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
+      { name: 'Documentation', path: '/documentation', icon: Book },
+    ])
+  }, [getFilteredNavigation])
 
   const isActivePath = (path: string) => {
     if (path === '/') {
@@ -159,7 +275,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   // Dynamic mobile navigation based on current page
-  const getBaseNavigation = () => {
+  const getBaseNavigation = useMemo(() => {
     const defaultNav = getFilteredNavigation([
       { name: 'Dashboard', path: '/', icon: Home },
       { name: 'Spends', path: '/spends', icon: DollarSign },
@@ -196,9 +312,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
 
     return defaultNav
-  }
+  }, [getFilteredNavigation, isOnSpendsPage, isOnPersonsPage, isOnSuppliersPage])
 
-  const baseNavigation = getBaseNavigation()
+  const baseNavigation = getBaseNavigation
 
   // Determine which position should have the plus button
   let plusButtonIndex = -1
