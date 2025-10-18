@@ -53,7 +53,7 @@ const Login = () => {
 
       // Success - user will be redirected by auth state change
       setSuccess('Sign in successful! Redirecting...')
-      setTimeout(() => navigate('/'), 1000)
+      setTimeout(() => navigate('/dashboard'), 1000)
     } catch {
       setError('An unexpected error occurred. Please try again.')
     } finally {

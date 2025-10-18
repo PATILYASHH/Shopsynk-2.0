@@ -1,8 +1,8 @@
 {
-  "name": "Shopsynk v1.4.2 - Bugs Fixed",
-  "short_name": "Shopsynk v1.4.2",
-  "description": "Complete supplier dues management with personal spends tracking - Version 1.4.2",
-  "version": "1.4.2",
+  "name": "Shopsynk v1.4.3 - The opening page update",
+  "short_name": "Shopsynk v1.4.3",
+  "description": "Complete supplier dues management with personal spends tracking - Version 1.4.3",
+  "version": "1.4.3",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FEF3C7",

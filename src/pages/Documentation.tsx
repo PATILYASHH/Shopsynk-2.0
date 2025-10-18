@@ -32,13 +32,52 @@ import {
 // Version History Data
 const versionHistory = [
   {
+    id: 'v1.4.3',
+    version: '1.4.3',
+    name: 'The opening page update',
+    date: 'October 18, 2025',
+    type: 'minor',
+    color: 'purple',
+    current: true,
+    description: 'Enhanced user experience with a professional landing page showcasing all features and capabilities.',
+    features: [
+      {
+        category: 'User Experience',
+        icon: Monitor,
+        color: 'purple',
+        items: [
+          'New professional landing page with big logo and branding',
+          'Comprehensive feature showcase with detailed descriptions',
+          'Prominent "Get Started" call-to-action button',
+          'Responsive design for all screen sizes',
+          'Statistics section highlighting key app benefits'
+        ]
+      },
+      {
+        category: 'Navigation & Routing',
+        icon: ArrowRight,
+        color: 'blue',
+        items: [
+          'Improved authentication flow with proper redirects',
+          'Landing page for unauthenticated users',
+          'Dashboard access for authenticated users',
+          'Fixed email verification redirects',
+          'Enhanced user onboarding experience'
+        ]
+      }
+    ],
+    impact: 'This update significantly improves the first impression and user onboarding experience. New visitors now see a professional landing page that clearly communicates the app\'s value proposition and features, making it easier for them to understand what Shopsynk offers and get started with the application.',
+    breaking: false,
+    migration: []
+  },
+  {
     id: 'v1.4.2',
     version: '1.4.2',
     name: 'Bugs Fixed',
     date: 'September 26, 2025',
     type: 'patch',
     color: 'blue',
-    current: true,
+    current: false,
     description: 'Critical bug fixes and type safety improvements for enhanced stability and performance.',
     features: [
       {

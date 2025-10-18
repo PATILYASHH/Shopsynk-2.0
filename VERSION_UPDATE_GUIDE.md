@@ -2,7 +2,7 @@
 
 This guide explains how to update the version information across the Shopsynk application.
 
-## Current Version: 1.4.2 - Bugs Fixed
+## Current Version: 1.4.3 - The opening page update
 
 ## Files to Update When Releasing a New Version:on Update Guide
 
