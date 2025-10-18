@@ -257,7 +257,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = useMemo(() => {
     return getFilteredNavigation([
-      { name: 'Dashboard', path: '/', icon: Home },
+      { name: 'Dashboard', path: '/dashboard', icon: Home },
       { name: 'Suppliers', path: '/suppliers', icon: Users },
       { name: 'Persons', path: '/persons', icon: User },
       { name: 'Spends', path: '/spends', icon: DollarSign },
@@ -268,8 +268,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [getFilteredNavigation])
 
   const isActivePath = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/'
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard'
     }
     return location.pathname.startsWith(path)
   }
@@ -277,7 +277,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Dynamic mobile navigation based on current page
   const getBaseNavigation = useMemo(() => {
     const defaultNav = getFilteredNavigation([
-      { name: 'Dashboard', path: '/', icon: Home },
+      { name: 'Dashboard', path: '/dashboard', icon: Home },
       { name: 'Spends', path: '/spends', icon: DollarSign },
       { name: 'Suppliers', path: '/suppliers', icon: Users },
       { name: 'Persons', path: '/persons', icon: User },
@@ -287,7 +287,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     // When on spends page: Dashboard, Suppliers, Spends, Persons, More
     if (isOnSpendsPage) {
       return getFilteredNavigation([
-        { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
         { name: 'Suppliers', path: '/suppliers', icon: Users },
         { name: 'Spends', path: '/spends', icon: DollarSign },
         { name: 'Persons', path: '/persons', icon: User },
@@ -298,7 +298,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     // When on persons page: Dashboard, Spends, Persons, Suppliers, More
     if (isOnPersonsPage) {
       return getFilteredNavigation([
-        { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
         { name: 'Spends', path: '/spends', icon: DollarSign },
         { name: 'Persons', path: '/persons', icon: User },
         { name: 'Suppliers', path: '/suppliers', icon: Users },

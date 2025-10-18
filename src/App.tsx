@@ -9,6 +9,7 @@ import SplashScreen from './components/SplashScreen'
 import IconUpdateNotification from './components/IconUpdateNotification'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
@@ -58,13 +59,14 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/" element={<Landing />} />
               <Route
                 path="/*"
                 element={
                   <ProtectedRoute>
                     <Layout>
                       <Routes>
-                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/suppliers" element={<Suppliers />} />
                         <Route path="/suppliers/:id" element={<SupplierDetail />} />
                         <Route path="/persons" element={<Persons />} />
