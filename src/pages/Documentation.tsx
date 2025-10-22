@@ -38,7 +38,7 @@ const versionHistory = [
     date: 'October 18, 2025',
     type: 'minor',
     color: 'purple',
-    current: true,
+    current: false,
     description: 'Enhanced user experience with a professional landing page showcasing all features and capabilities.',
     features: [
       {
@@ -67,6 +67,31 @@ const versionHistory = [
       }
     ],
     impact: 'This update significantly improves the first impression and user onboarding experience. New visitors now see a professional landing page that clearly communicates the app\'s value proposition and features, making it easier for them to understand what Shopsynk offers and get started with the application.',
+    breaking: false,
+    migration: []
+  },
+  {
+    id: 'v1.4.4',
+    version: '1.4.4',
+    name: 'bug fixed',
+    date: 'October 22, 2025',
+    type: 'patch',
+    color: 'green',
+    current: true,
+    description: 'Various bug fixes and stability improvements.',
+    features: [
+      {
+        category: 'Bug Fixes',
+        icon: Bug,
+        color: 'green',
+        items: [
+          'Fixed various application bugs',
+          'Improved stability and performance',
+          'Enhanced error handling'
+        ]
+      }
+    ],
+    impact: 'This patch release addresses various bugs and improves overall application stability.',
     breaking: false,
     migration: []
   },
@@ -1136,12 +1161,12 @@ const Documentation: React.FC = () => {
               </div>
               <div className="text-center">
                 <Smartphone className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">NEW</div>
-                <div className="text-sm text-gray-600">Mobile Logout</div>
+                <div className="text-2xl font-bold text-gray-900">FIXED</div>
+                <div className="text-sm text-gray-600">Bug Fixes</div>
               </div>
               <div className="text-center">
                 <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">v1.3.2</div>
+                <div className="text-2xl font-bold text-gray-900">{getVersionDisplay()}</div>
                 <div className="text-sm text-gray-600">Current Version</div>
               </div>
             </div>
