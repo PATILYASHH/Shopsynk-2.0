@@ -419,7 +419,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-pb backdrop-blur-lg bg-opacity-95">
-        <div className="flex items-center justify-around px-1 py-3">
+        <div className="flex items-center justify-around px-2 py-2.5 gap-1">
           {baseNavigation.map((item, index) => {
             const isActive = isActivePath(item.path)
             
@@ -434,11 +434,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={handlePlusClick}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    className="flex items-center justify-center p-3 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl active:scale-95 animate-plus-appear ripple-container"
                     style={{ animationDelay }}
                     title="Add Supplier"
                   >
-                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
+                    <Plus className="h-6 w-6 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -448,11 +448,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={() => navigate('/persons?add=true')}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    className="flex items-center justify-center p-3 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl active:scale-95 animate-plus-appear ripple-container"
                     style={{ animationDelay }}
                     title="Add Person"
                   >
-                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
+                    <Plus className="h-6 w-6 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -462,11 +462,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={() => navigate('/spends?add=true')}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    className="flex items-center justify-center p-3 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl active:scale-95 animate-plus-appear ripple-container"
                     style={{ animationDelay }}
                     title="Add Spend"
                   >
-                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
+                    <Plus className="h-6 w-6 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -476,11 +476,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={() => setShowPersonMenu(!showPersonMenu)}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    className="flex items-center justify-center p-3 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg hover:shadow-xl active:scale-95 animate-plus-appear ripple-container"
                     style={{ animationDelay }}
                     title="Add Transaction"
                   >
-                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
+                    <Plus className="h-6 w-6 text-white transition-transform duration-300" />
                   </button>
                 )
               }
