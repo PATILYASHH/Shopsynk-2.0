@@ -414,7 +414,9 @@ const SupplierDetail = () => {
 
     const clear = useCallback(
       (event: React.TouchEvent | React.MouseEvent) => {
-        timeout.current && clearTimeout(timeout.current)
+        if (timeout.current) {
+          clearTimeout(timeout.current)
+        }
         if (longPressTriggered) {
           event.preventDefault()
           event.stopPropagation()
