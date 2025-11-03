@@ -418,10 +418,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-pb">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-pb backdrop-blur-lg bg-opacity-95">
         <div className="flex items-center justify-around px-1 py-3">
           {baseNavigation.map((item, index) => {
             const isActive = isActivePath(item.path)
+            
+            // Staggered animation delay for each nav item
+            const animationDelay = `${index * 50}ms`
+            const animationClass = index < 2 ? 'animate-slide-in-left' : index > 2 ? 'animate-slide-in-right' : 'animate-slide-in-center'
 
             // Check if this position should have the plus button
             if (index === plusButtonIndex) {
@@ -430,10 +434,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={handlePlusClick}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    style={{ animationDelay }}
                     title="Add Supplier"
                   >
-                    <Plus className="h-7 w-7 text-white" />
+                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -443,10 +448,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={() => navigate('/persons?add=true')}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    style={{ animationDelay }}
                     title="Add Person"
                   >
-                    <Plus className="h-7 w-7 text-white" />
+                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -456,10 +462,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={() => navigate('/spends?add=true')}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    style={{ animationDelay }}
                     title="Add Spend"
                   >
-                    <Plus className="h-7 w-7 text-white" />
+                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -469,10 +476,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     key={`plus-${index}`}
                     onClick={() => setShowPersonMenu(!showPersonMenu)}
-                    className="flex items-center justify-center p-4 rounded-full transition-all duration-200 bg-blue-600 text-white transform scale-110 shadow-lg hover:scale-125"
+                    className="flex items-center justify-center p-4 rounded-full transition-all duration-300 bg-gradient-to-br from-blue-600 to-blue-700 text-white transform scale-110 shadow-xl hover:shadow-2xl hover:scale-125 active:scale-105 animate-plus-appear animate-plus-pulse ripple-container"
+                    style={{ animationDelay }}
                     title="Add Transaction"
                   >
-                    <Plus className="h-7 w-7 text-white" />
+                    <Plus className="h-7 w-7 text-white transition-transform duration-300" />
                   </button>
                 )
               }
@@ -484,14 +492,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <button
                   key={item.name}
                   onClick={() => setShowMoreMenu(!showMoreMenu)}
-                  className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center justify-center p-3 rounded-xl transition-all duration-300 ${animationClass} ripple-container ${
                     showMoreMenu
-                      ? 'text-blue-600 bg-blue-50 transform scale-110'
+                      ? 'text-blue-600 bg-blue-50 transform scale-110 shadow-md'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 active:scale-95'
                   }`}
+                  style={{ animationDelay }}
                   title={item.name}
                 >
-                  <i className={`bi bi-grid-1x2 ${showMoreMenu ? 'text-blue-600' : 'text-gray-500'}`} style={{fontSize: '1.5rem'}}></i>
+                  <i className={`bi bi-grid-1x2 transition-all duration-300 ${showMoreMenu ? 'text-blue-600 rotate-90' : 'text-gray-500'}`} style={{fontSize: '1.5rem'}}></i>
                 </button>
               )
             }
@@ -502,14 +511,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className={`flex items-center justify-center p-3 rounded-xl transition-all duration-200 ${
+                className={`flex items-center justify-center p-3 rounded-xl transition-all duration-300 ${animationClass} ripple-container ${
                   isActive
-                    ? 'text-blue-600 bg-blue-50 transform scale-110'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 active:scale-95'
+                    ? 'text-blue-600 bg-blue-50 transform scale-110 shadow-md'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 active:scale-95 hover:shadow-sm'
                 }`}
+                style={{ animationDelay }}
                 title={item.name}
               >
-                <Icon className={`h-6 w-6 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+                <Icon className={`h-6 w-6 transition-all duration-300 ${isActive ? 'text-blue-600 scale-110' : 'text-gray-500'}`} />
               </button>
             )
           })}
@@ -518,13 +528,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Plus Menu Popup for Supplier Detail */}
       {showPlusMenu && isOnSupplierDetailPage && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end justify-center">
-          <div className="bg-white rounded-t-2xl w-full p-6 animate-slide-up">
-            <div className="flex items-center justify-between mb-6">
+        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end justify-center transition-opacity duration-300">
+          <div className="bg-white rounded-t-2xl w-full p-6 animate-slide-up shadow-2xl">
+            <div className="flex items-center justify-between mb-6 animate-fade-in-delayed">
               <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
               <button
                 onClick={() => setShowPlusMenu(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 active:scale-95"
               >
                 <X className="h-5 w-5 text-gray-500" />
               </button>
@@ -533,9 +543,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handlePurchase}
-                className="flex flex-col items-center p-6 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                className="flex flex-col items-center p-6 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-slide-in-left ripple-container"
               >
-                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mb-3 shadow-md">
                   <ShoppingBasket className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-red-700 font-medium">Add Purchase</span>
@@ -544,9 +554,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               
               <button
                 onClick={handlePayment}
-                className="flex flex-col items-center p-6 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors"
+                className="flex flex-col items-center p-6 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-slide-in-right ripple-container"
+                style={{ animationDelay: '100ms' }}
               >
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mb-3 shadow-md">
                   <CreditCard className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-green-700 font-medium">Pay Due</span>
@@ -559,13 +570,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Person Menu Popup */}
       {showPersonMenu && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end justify-center">
-          <div className="bg-white rounded-t-2xl w-full p-6 animate-slide-up">
-            <div className="flex items-center justify-between mb-6">
+        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end justify-center transition-opacity duration-300">
+          <div className="bg-white rounded-t-2xl w-full p-6 animate-slide-up shadow-2xl">
+            <div className="flex items-center justify-between mb-6 animate-fade-in-delayed">
               <h3 className="text-lg font-semibold text-gray-900">Add Transaction</h3>
               <button
                 onClick={() => setShowPersonMenu(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all duration-200 active:scale-95"
               >
                 <X className="h-5 w-5 text-gray-500" />
               </button>
@@ -574,9 +585,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleGives}
-                className="flex flex-col items-center p-6 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                className="flex flex-col items-center p-6 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-slide-in-left ripple-container"
               >
-                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mb-3 shadow-md">
                   <HandCoins className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-red-700 font-medium">Gives</span>
@@ -585,9 +596,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <button
                 onClick={handleTakes}
-                className="flex flex-col items-center p-6 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors"
+                className="flex flex-col items-center p-6 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 animate-slide-in-right ripple-container"
+                style={{ animationDelay: '100ms' }}
               >
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mb-3 shadow-md">
                   <DollarSign className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-green-700 font-medium">Takes</span>
@@ -600,16 +612,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* More Menu Popup */}
       {showMoreMenu && (
-        <div data-more-menu className="lg:hidden fixed bottom-16 right-4 bg-white border border-gray-200 rounded-xl shadow-lg z-[60] min-w-48 animate-fade-in">
+        <div data-more-menu className="lg:hidden fixed bottom-16 right-4 bg-white border border-gray-200 rounded-xl shadow-2xl z-[60] min-w-48 animate-nav-pop-in backdrop-blur-lg bg-opacity-95">
           <div className="py-2">
             <button
               onClick={() => {
                 navigate('/profile')
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <User className="h-4 w-4 mr-3 text-gray-500" />
+              <User className="h-4 w-4 mr-3 text-gray-500 transition-transform duration-200" />
               Profile
             </button>
             <button
@@ -617,9 +629,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 navigate('/data-storage')
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <HardDrive className="h-4 w-4 mr-3 text-gray-500" />
+              <HardDrive className="h-4 w-4 mr-3 text-gray-500 transition-transform duration-200" />
               Data Storage
             </button>
             <button
@@ -627,9 +639,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 navigate('/reports')
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <FileText className="h-4 w-4 mr-3 text-gray-500" />
+              <FileText className="h-4 w-4 mr-3 text-gray-500 transition-transform duration-200" />
               Reports
             </button>
             <button
@@ -637,9 +649,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 navigate('/transactions')
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <Receipt className="h-4 w-4 mr-3 text-gray-500" />
+              <Receipt className="h-4 w-4 mr-3 text-gray-500 transition-transform duration-200" />
               Transactions
             </button>
             <button
@@ -647,9 +659,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 navigate('/documentation')
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <Book className="h-4 w-4 mr-3 text-gray-500" />
+              <Book className="h-4 w-4 mr-3 text-gray-500 transition-transform duration-200" />
               Documentation
             </button>
             <button
@@ -657,9 +669,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 navigate('/settings')
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <Settings className="h-4 w-4 mr-3 text-gray-500" />
+              <Settings className="h-4 w-4 mr-3 text-gray-500 transition-transform duration-200" />
               Settings
             </button>
             <div className="border-t border-gray-200 my-1"></div>
@@ -668,9 +680,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 handleSignOut()
                 setShowMoreMenu(false)
               }}
-              className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center transition-colors"
+              className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center transition-all duration-200 hover:scale-105 hover:shadow-sm active:scale-95 rounded-lg mx-1"
             >
-              <LogOut className="h-4 w-4 mr-3 text-red-500" />
+              <LogOut className="h-4 w-4 mr-3 text-red-500 transition-transform duration-200" />
               Sign Out
             </button>
           </div>
