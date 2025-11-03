@@ -356,7 +356,7 @@ const Persons = () => {
 
       {/* Add Person Modal - Enhanced Mobile Design */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-end sm:items-center justify-center">
           <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white rounded-t-2xl sm:rounded-t-2xl z-10">
