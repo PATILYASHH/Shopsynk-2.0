@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Shield,
   TrendingUp,
-  FileText,
   Clock,
   CheckCircle,
   Zap,

@@ -1,7 +1,7 @@
 // Application version information
 export const APP_VERSION = '1.4.4'
-export const VERSION_NAME = 'bug fixed'
-export const RELEASE_DATE = 'October 22, 2025'
+export const VERSION_NAME = 'animations added and bugs fixed'
+export const RELEASE_DATE = 'November 3, 2025'
 
 // Version display formats
 export const getVersionDisplay = () => `v${APP_VERSION}`
