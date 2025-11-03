@@ -39,6 +39,23 @@
   animation: slide-up 0.3s ease-out forwards;
 }
 
+/* Page Transition Animations */
+@keyframes page-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Page transition class */
+.page-transition {
+  animation: page-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 /* Bottom Navigation Animations */
 @keyframes nav-pop-in {
   0% {
