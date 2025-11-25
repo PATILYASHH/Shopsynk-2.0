@@ -71,13 +71,49 @@ const versionHistory = [
     migration: []
   },
   {
+    id: 'v1.4.5',
+    version: '1.4.5',
+    name: 'minor bug fixes and UI improve',
+    date: 'November 25, 2025',
+    type: 'patch',
+    color: 'blue',
+    current: true,
+    description: 'Minor bug fixes and UI improvements for better user experience.',
+    features: [
+      {
+        category: 'UI Improvements',
+        icon: Monitor,
+        color: 'blue',
+        items: [
+          'Removed oversized Dashboard heading for cleaner look',
+          'Improved header spacing and layout',
+          'Enhanced visual hierarchy on homepage',
+          'Added developer credit in footer'
+        ]
+      },
+      {
+        category: 'Bug Fixes',
+        icon: Bug,
+        color: 'green',
+        items: [
+          'Fixed mobile UI rendering issues',
+          'Improved responsive design consistency',
+          'Enhanced footer information display'
+        ]
+      }
+    ],
+    impact: 'This patch improves the overall user interface and fixes minor display issues, resulting in a cleaner and more professional appearance.',
+    breaking: false,
+    migration: []
+  },
+  {
     id: 'v1.4.4',
     version: '1.4.4',
     name: 'bug fixed',
     date: 'October 22, 2025',
     type: 'patch',
     color: 'green',
-    current: true,
+    current: false,
     description: 'Various bug fixes and stability improvements.',
     features: [
       {
@@ -1161,8 +1197,8 @@ const Documentation: React.FC = () => {
               </div>
               <div className="text-center">
                 <Smartphone className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">FIXED</div>
-                <div className="text-sm text-gray-600">Bug Fixes</div>
+                <div className="text-2xl font-bold text-gray-900">UI+</div>
+                <div className="text-sm text-gray-600">UI Improvements</div>
               </div>
               <div className="text-center">
                 <Clock className="h-8 w-8 text-orange-600 mx-auto mb-2" />

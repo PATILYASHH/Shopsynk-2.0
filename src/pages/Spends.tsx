@@ -60,6 +60,20 @@ const Spends = () => {
     }
   }, [location.search, navigate])
 
+  // Auto-scroll to top when modal opens
+  useEffect(() => {
+    if (showAddModal) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showAddModal])
+
   const fetchSpends = async () => {
     if (!user) return
 
@@ -146,7 +160,7 @@ const Spends = () => {
   const filteredAndSortedSpends = spends
     .filter((spend) => {
       const matchesSearch = spend.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           spend.category.toLowerCase().includes(searchTerm.toLowerCase())
+        spend.category.toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchesFilter = filterBy === 'all' || spend.category === filterBy
 
@@ -228,7 +242,7 @@ const Spends = () => {
                       const spendDate = new Date(spend.date)
                       const now = new Date()
                       return spendDate.getMonth() === now.getMonth() &&
-                             spendDate.getFullYear() === now.getFullYear()
+                        spendDate.getFullYear() === now.getFullYear()
                     })
                     .reduce((sum, spend) => sum + spend.amount, 0)
                 )}
@@ -374,8 +388,8 @@ const Spends = () => {
 
       {/* Add Spend Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 pt-20 overflow-y-auto z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md my-8">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">Add Personal Spend</h2>
@@ -395,7 +409,7 @@ const Spends = () => {
                   <input
                     type="text"
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     disabled={isSubmitting}
                     required
                     className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-base transition-colors"
@@ -410,7 +424,7 @@ const Spends = () => {
                   <input
                     type="number"
                     value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                     disabled={isSubmitting}
                     required
                     min="0"
@@ -426,7 +440,7 @@ const Spends = () => {
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     disabled={isSubmitting}
                     className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-base transition-colors"
                   >
@@ -443,7 +457,7 @@ const Spends = () => {
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     disabled={isSubmitting}
                     className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-base transition-colors"
                   />
