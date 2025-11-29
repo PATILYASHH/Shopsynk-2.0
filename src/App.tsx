@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { NotificationService } from './services/NotificationService'
 import ProtectedRoute from './components/ProtectedRoute'
+import ModeRestrictedRoute from './components/ModeRestrictedRoute'
 import Layout from './components/Layout'
 import SplashScreen from './components/SplashScreen'
 import IconUpdateNotification from './components/IconUpdateNotification'
@@ -67,8 +68,22 @@ function App() {
                     <Layout>
                       <Routes>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/suppliers" element={<Suppliers />} />
-                        <Route path="/suppliers/:id" element={<SupplierDetail />} />
+                        <Route 
+                          path="/suppliers" 
+                          element={
+                            <ModeRestrictedRoute requiredMode="business" redirectTo="/dashboard">
+                              <Suppliers />
+                            </ModeRestrictedRoute>
+                          } 
+                        />
+                        <Route 
+                          path="/suppliers/:id" 
+                          element={
+                            <ModeRestrictedRoute requiredMode="business" redirectTo="/dashboard">
+                              <SupplierDetail />
+                            </ModeRestrictedRoute>
+                          } 
+                        />
                         <Route path="/persons" element={<Persons />} />
                         <Route path="/persons/:id" element={<PersonDetail />} />
                         <Route path="/spends" element={<Spends />} />

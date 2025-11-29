@@ -1,8 +1,8 @@
 {
-  "name": "Shopsynk v1.4.5 - minor bug fixes and UI improve",
-  "short_name": "Shopsynk v1.4.5",
-  "description": "Complete supplier dues management with personal spends tracking - Version 1.4.5",
-  "version": "1.4.5",
+  "name": "Shopsynk v1.4.6 - AI Smart Spend Parsing & Mobile Responsive",
+  "short_name": "Shopsynk v1.4.6",
+  "description": "AI-powered supplier management with smart expense parsing and mobile-first design - Version 1.4.6",
+  "version": "1.4.6",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FEF3C7",

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getVersionDisplay } from '../constants/version'
+import { supabase } from '../lib/supabase'
 import PWAInstallPrompt from './PWAInstallPrompt'
 import PWAUpdateNotification from './PWAUpdateNotification'
 import NotificationDropdown from './NotificationDropdown'
@@ -48,6 +49,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     persons: 'data-storage'
   })
 
+  const [userMode, setUserMode] = useState<'business' | 'personal'>('business')
+
+  // Load user mode from database
+  useEffect(() => {
+    const loadUserMode = async () => {
+      if (!user) return
+
+      try {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('mode')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!error && data) {
+          setUserMode(data.mode)
+          
+          // Auto-disable suppliers for personal mode
+          if (data.mode === 'personal') {
+            setFeatureSettings(prev => ({ ...prev, suppliers: false }))
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user mode:', error)
+      }
+    }
+
+    loadUserMode()
+  }, [user])
+
   // Load feature settings from localStorage
   useEffect(() => {
     const loadSettings = () => {
@@ -56,6 +87,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         try {
           const parsed = JSON.parse(savedSettings)
           if (parsed.features) {
+            // For personal mode, always keep suppliers disabled
+            if (userMode === 'personal') {
+              parsed.features.suppliers = false
+            }
             setFeatureSettings(parsed.features)
           }
           if (parsed.replacements) {
@@ -256,7 +291,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   const navigation = useMemo(() => {
-    return getFilteredNavigation([
+    const baseNav = [
       { name: 'Dashboard', path: '/dashboard', icon: Home },
       { name: 'Suppliers', path: '/suppliers', icon: Users },
       { name: 'Persons', path: '/persons', icon: User },
@@ -264,8 +299,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       { name: 'Reports', path: '/reports', icon: FileText },
       { name: 'Data Storage', path: '/data-storage', icon: HardDrive },
       { name: 'Documentation', path: '/documentation', icon: Book },
-    ])
-  }, [getFilteredNavigation])
+    ]
+    
+    // In personal mode, completely remove suppliers from navigation
+    const filteredNav = userMode === 'personal' 
+      ? baseNav.filter(item => item.path !== '/suppliers')
+      : baseNav
+    
+    return getFilteredNavigation(filteredNav)
+  }, [getFilteredNavigation, userMode])
 
   const isActivePath = (path: string) => {
     if (path === '/dashboard') {
@@ -276,6 +318,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Dynamic mobile navigation based on current page
   const getBaseNavigation = useMemo(() => {
+    // In personal mode, create navigation without suppliers
+    if (userMode === 'personal') {
+      const personalNav = [
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
+        { name: 'Spends', path: '/spends', icon: DollarSign },
+        { name: 'Persons', path: '/persons', icon: User },
+        { name: 'Reports', path: '/reports', icon: FileText },
+        { name: 'More', path: '#', icon: MoreVertical },
+      ]
+      return getFilteredNavigation(personalNav)
+    }
+
+    // Business mode navigation (includes suppliers)
     const defaultNav = getFilteredNavigation([
       { name: 'Dashboard', path: '/dashboard', icon: Home },
       { name: 'Spends', path: '/spends', icon: DollarSign },
@@ -312,7 +367,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
 
     return defaultNav
-  }, [getFilteredNavigation, isOnSpendsPage, isOnPersonsPage, isOnSuppliersPage])
+  }, [getFilteredNavigation, userMode, isOnSpendsPage, isOnPersonsPage, isOnSuppliersPage])
 
   const baseNavigation = getBaseNavigation
 
@@ -320,7 +375,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   let plusButtonIndex = -1
   let plusButtonType = ''
 
-  if (isOnSuppliersPage || isOnSupplierDetailPage) {
+  // Only show supplier plus button in business mode
+  if ((isOnSuppliersPage || isOnSupplierDetailPage) && userMode === 'business') {
     plusButtonIndex = 2 // Suppliers position (index 2 in default navigation)
     plusButtonType = 'Add Supplier'
   } else if (isOnPersonsPage) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { X, Plus, DollarSign } from 'lucide-react'
+import { X, Plus, DollarSign, Sparkles, Loader2 } from 'lucide-react'
 import { Supplier, Transaction } from '../lib/supabase'
 import { BusinessOwner } from '../lib/businessOwners'
+import { generateTransactionDescription } from '../lib/geminiService'
 
 interface SimpleTransactionFormProps {
   isOpen: boolean
@@ -27,6 +28,8 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
     description: '',
     owner_id: ''
   })
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [aiEnabled, setAiEnabled] = useState(true)
 
   // Populate form when editing
   useEffect(() => {
@@ -48,6 +51,28 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
       })
     }
   }, [editingTransaction, isOpen])
+
+  const handleGenerateDescription = async () => {
+    if (!formData.supplier_id || !formData.amount) return
+    
+    setIsGenerating(true)
+    try {
+      const supplier = suppliers.find(s => s.id === formData.supplier_id)
+      if (supplier) {
+        const description = await generateTransactionDescription(
+          formData.type === 'new_purchase' ? 'purchase' : 'payment',
+          supplier.name,
+          parseFloat(formData.amount),
+          formData.description
+        )
+        setFormData({ ...formData, description })
+      }
+    } catch (error) {
+      console.error('Error generating description:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -174,16 +199,38 @@ const SimpleTransactionForm: React.FC<SimpleTransactionFormProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description (Optional)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Description (Optional)
+              </label>
+              {aiEnabled && formData.supplier_id && formData.amount && (
+                <button
+                  type="button"
+                  onClick={handleGenerateDescription}
+                  disabled={isGenerating}
+                  className="flex items-center space-x-1 px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  <span>{isGenerating ? 'Generating...' : 'AI Suggest'}</span>
+                </button>
+              )}
+            </div>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Add description..."
+              placeholder={aiEnabled ? "Add description or click AI Suggest..." : "Add description..."}
               className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            {aiEnabled && (
+              <p className="mt-1 text-xs text-gray-500">
+                💡 Select supplier & amount, then click AI Suggest for smart description
+              </p>
+            )}
           </div>
 
           {/* Action Buttons */}

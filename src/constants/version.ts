@@ -1,7 +1,7 @@
 // Application version information
-export const APP_VERSION = '1.4.5'
-export const VERSION_NAME = 'minor bug fixes and UI improve'
-export const RELEASE_DATE = 'November 25, 2025'
+export const APP_VERSION = '1.4.6'
+export const VERSION_NAME = 'AI Smart Spend Parsing & Mobile Responsive'
+export const RELEASE_DATE = 'November 29, 2025'
 
 // Version display formats
 export const getVersionDisplay = () => `v${APP_VERSION}`

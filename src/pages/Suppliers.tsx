@@ -192,26 +192,26 @@ const Suppliers = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, contact, phone, or email..."
+              placeholder="Search suppliers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-base"
+              className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm sm:text-base"
             />
           </div>
         </div>
 
         {/* Filters - Mobile Optimized */}
-        <div className="mt-4 flex flex-col sm:flex-row gap-3">
+        <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
           <div className="flex-1">
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm sm:text-base"
             >
               <option value="all">🏢 All Suppliers</option>
               <option value="with_dues">💰 With Dues</option>
@@ -226,7 +226,7 @@ const Suppliers = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm sm:text-base"
             >
               <option value="dues_desc">📈 Highest Dues First</option>
               <option value="dues_asc">📉 Lowest Dues First</option>
@@ -237,28 +237,28 @@ const Suppliers = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl text-center">
-            <p className="text-2xl font-bold text-blue-600">{suppliers.length}</p>
-            <p className="text-xs font-medium text-blue-700">Total Suppliers</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-xl text-center">
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">{suppliers.length}</p>
+            <p className="text-xs font-medium text-blue-700 mt-0.5">Total</p>
           </div>
-          <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-xl text-center">
-            <p className="text-2xl font-bold text-red-600">
+          <div className="bg-gradient-to-br from-red-50 to-red-100 p-3 sm:p-4 rounded-xl text-center">
+            <p className="text-xl sm:text-2xl font-bold text-red-600">
               {suppliers.filter(s => s.dueAmount > 0).length}
             </p>
-            <p className="text-xs font-medium text-red-700">With Dues</p>
+            <p className="text-xs font-medium text-red-700 mt-0.5">With Dues</p>
           </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-xl text-center">
-            <p className="text-2xl font-bold text-green-600">
+          <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 sm:p-4 rounded-xl text-center">
+            <p className="text-xl sm:text-2xl font-bold text-green-600">
               {suppliers.filter(s => s.dueAmount === 0).length}
             </p>
-            <p className="text-xs font-medium text-green-700">All Clear</p>
+            <p className="text-xs font-medium text-green-700 mt-0.5">All Clear</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-xl text-center">
-            <p className="text-lg font-bold text-purple-600">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 rounded-xl text-center">
+            <p className="text-base sm:text-lg font-bold text-purple-600">
               ₹{Math.round(suppliers.reduce((sum, s) => sum + s.dueAmount, 0)).toLocaleString()}
             </p>
-            <p className="text-xs font-medium text-purple-700">Total Dues</p>
+            <p className="text-xs font-medium text-purple-700 mt-0.5">Total Dues</p>
           </div>
         </div>
       </div>
@@ -280,12 +280,12 @@ const Suppliers = () => {
             <div
               key={supplier.id}
               onClick={() => navigate(`/suppliers/${supplier.id}`)}
-              className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer group transform hover:scale-105"
+              className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer group active:scale-95 sm:hover:scale-105"
             >
               {/* Supplier Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 text-lg truncate group-hover:text-blue-600 transition-colors">
+                  <h3 className="font-semibold text-gray-900 text-base sm:text-lg truncate group-hover:text-blue-600 transition-colors">
                     {supplier.name}
                   </h3>
                   {supplier.contact_person && (

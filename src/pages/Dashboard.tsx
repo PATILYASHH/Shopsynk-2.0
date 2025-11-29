@@ -10,9 +10,15 @@ import {
   ArrowDownRight,
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Sparkles,
+  Lightbulb,
+  X
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { generateFinancialInsights, FinancialInsight } from '../lib/geminiService'
+import ModeSelection from '../components/ModeSelection'
+import PersonalDashboard from '../components/PersonalDashboard'
 
 interface DashboardStats {
   totalDues: number
@@ -43,6 +49,12 @@ const Dashboard = () => {
     dataStorage: true,
     documentation: true
   })
+  const [insights, setInsights] = useState<FinancialInsight[]>([])
+  const [showInsights, setShowInsights] = useState(false)
+  const [loadingInsights, setLoadingInsights] = useState(false)
+  const [showModeSelection, setShowModeSelection] = useState(false)
+  const [checkingMode, setCheckingMode] = useState(true)
+  const [userMode, setUserMode] = useState<'business' | 'personal' | null>(null)
 
   // Load feature settings from localStorage
   useEffect(() => {
@@ -58,8 +70,56 @@ const Dashboard = () => {
   }, [])
 
   useEffect(() => {
-    fetchDashboardData()
+    checkUserMode()
   }, [user])
+
+  const checkUserMode = async () => {
+    if (!user) return
+
+    setCheckingMode(true)
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('mode')
+        .eq('user_id', user.id)
+        .single()
+
+      if (error && error.code === 'PGRST116') {
+        // No preference found, show mode selection
+        setShowModeSelection(true)
+        setCheckingMode(false)
+      } else if (data) {
+        // User has selected mode, set it and proceed with dashboard
+        setUserMode(data.mode as 'business' | 'personal')
+        if (data.mode === 'business') {
+          fetchDashboardData()
+        } else {
+          // Personal mode - dashboard loads its own data
+          setCheckingMode(false)
+          setLoading(false)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user mode:', error)
+      setUserMode('business') // Fallback to business mode
+      fetchDashboardData()
+    }
+  }
+
+  const handleModeSelected = (mode: 'business' | 'personal') => {
+    setShowModeSelection(false)
+    setUserMode(mode)
+    if (mode === 'business') {
+      fetchDashboardData()
+    } else {
+      // Personal mode - stop loading state
+      setCheckingMode(false)
+      setLoading(false)
+    }
+    
+    // Dispatch event to reload layout
+    window.dispatchEvent(new Event('settingsChanged'))
+  }
 
   const fetchDashboardData = async () => {
     if (!user) return
@@ -199,10 +259,84 @@ const Dashboard = () => {
         recentTransactions: recentTransactions || [],
         upcomingDues: outstandingPayments || []
       })
+
+      // Auto-load insights if API key is available
+      const hasApiKey = import.meta.env.VITE_GEMINI_API_KEY
+      if (hasApiKey && !loadingInsights && insights.length === 0) {
+        loadAIInsights(totalDues, suppliersCount || 0, allTransactionsForStats || [])
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAIInsights = async (totalDues: number, supplierCount: number, transactions: any[]) => {
+    setLoadingInsights(true)
+    try {
+      const { data: spends } = await supabase
+        .from('spends')
+        .select('amount')
+        .eq('user_id', user?.id || '')
+      
+      const totalSpends = spends?.reduce((sum, s) => sum + parseFloat(s.amount.toString()), 0) || 0
+
+      const supplierTotals = new Map<string, { name: string; amount: number }>()
+      transactions.forEach(t => {
+        if (t.supplier_id) {
+          const existing = supplierTotals.get(t.supplier_id) || { name: '', amount: 0 }
+          existing.name = t.supplier?.name || 'Unknown'
+          if (t.type === 'new_purchase') {
+            existing.amount += parseFloat(t.amount)
+          }
+          supplierTotals.set(t.supplier_id, existing)
+        }
+      })
+
+      const topSuppliers = Array.from(supplierTotals.values())
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 3)
+
+      const recentTransactions = transactions.slice(0, 10)
+      const olderTransactions = transactions.slice(10, 20)
+      const recentAvg = recentTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0) / Math.max(1, recentTransactions.length)
+      const olderAvg = olderTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0) / Math.max(1, olderTransactions.length)
+      const trend = recentAvg > olderAvg * 1.2 ? 'increasing' : recentAvg < olderAvg * 0.8 ? 'decreasing' : 'stable'
+
+      const generatedInsights = await generateFinancialInsights({
+        totalDues,
+        totalSpends,
+        topSuppliers,
+        recentTrend: trend
+      })
+
+      setInsights(generatedInsights)
+      if (generatedInsights.length > 0) {
+        setShowInsights(true)
+      }
+    } catch (error) {
+      console.error('Error loading AI insights:', error)
+    } finally {
+      setLoadingInsights(false)
+    }
+  }
+
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'warning': return <AlertTriangle className="h-5 w-5 text-yellow-600" />
+      case 'success': return <CheckCircle className="h-5 w-5 text-green-600" />
+      case 'tip': return <Lightbulb className="h-5 w-5 text-blue-600" />
+      default: return <Sparkles className="h-5 w-5 text-purple-600" />
+    }
+  }
+
+  const getInsightColor = (type: string) => {
+    switch (type) {
+      case 'warning': return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+      case 'success': return 'bg-green-50 border-green-200 text-green-800'
+      case 'tip': return 'bg-blue-50 border-blue-200 text-blue-800'
+      default: return 'bg-purple-50 border-purple-200 text-purple-800'
     }
   }
 
@@ -231,7 +365,12 @@ const Dashboard = () => {
     }
   }
 
-  if (loading) {
+  // Show mode selection if needed
+  if (showModeSelection) {
+    return <ModeSelection userId={user!.id} onComplete={handleModeSelected} />
+  }
+
+  if (loading || checkingMode) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="relative">
@@ -244,34 +383,81 @@ const Dashboard = () => {
     )
   }
 
+  // Render PersonalDashboard for personal mode users
+  if (userMode === 'personal') {
+    return <PersonalDashboard />
+  }
+
   return (
     <div className="space-y-6 animate-slide-up-fade">
       {/* Header with Gradient */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 rounded-2xl p-4 sm:p-6 shadow-2xl">
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-2xl">
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="relative z-10">
-          <p className="text-blue-100 text-sm sm:text-base">Welcome back! Here's your business overview</p>
+          <p className="text-blue-100 text-xs sm:text-sm lg:text-base">Welcome back! Here's your business overview</p>
         </div>
-        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
-        <div className="absolute -left-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+        <div className="absolute -right-10 -bottom-10 w-32 sm:w-40 h-32 sm:h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+        <div className="absolute -left-10 -top-10 w-32 sm:w-40 h-32 sm:h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
       </div>
+
+      {/* AI Insights Section */}
+      {showInsights && insights.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-3 sm:p-6 border-2 border-purple-200 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">AI Insights</h2>
+            </div>
+            <button
+              onClick={() => setShowInsights(false)}
+              className="p-1 hover:bg-purple-200 rounded-full transition-colors touch-manipulation"
+            >
+              <X className="h-4 w-4 text-purple-600" />
+            </button>
+          </div>
+          <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
+            {insights.map((insight, index) => (
+              <div
+                key={index}
+                className={`p-3 sm:p-4 rounded-lg border-2 ${getInsightColor(insight.type)}`}
+              >
+                <div className="flex items-start space-x-2 sm:space-x-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getInsightIcon(insight.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-xs sm:text-sm mb-1">{insight.title}</h3>
+                    <p className="text-xs mb-2 opacity-90">{insight.message}</p>
+                    {insight.actionable && (
+                      <p className="text-xs font-medium flex items-center space-x-1">
+                        <span>💡</span>
+                        <span>{insight.actionable}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards - Enhanced with Gradients */}
       <div className={`grid gap-4 sm:gap-6 ${featureSettings.suppliers ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'
         }`}>
         {/* Outstanding Dues Card */}
         <div className="stat-card group bg-gradient-to-br from-red-50 to-pink-50 border-red-200 animate-scale-in" style={{ animationDelay: '0ms' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <DollarSign className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg sm:rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <div className="flex items-center gap-1 text-red-600 text-xs font-medium bg-red-100 px-2 py-1 rounded-full">
+            <div className="flex items-center gap-1 text-red-600 text-xs font-medium bg-red-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
               <AlertTriangle className="h-3 w-3" />
               Due
             </div>
           </div>
-          <p className="text-sm text-gray-600 font-medium mb-1">Outstanding</p>
-          <p className="text-2xl sm:text-3xl font-bold text-red-600 mb-1">
+          <p className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 sm:mb-1">Outstanding</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600 mb-0.5 sm:mb-1">
             ₹{Math.round(stats.totalDues).toLocaleString()}
           </p>
           <p className="text-xs text-gray-500">{stats.pendingPayments} pending</p>
@@ -281,17 +467,17 @@ const Dashboard = () => {
         {featureSettings.suppliers && (
           <button
             onClick={() => navigate('/suppliers')}
-            className="stat-card group bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:shadow-2xl hover:scale-105 animate-scale-in"
+            className="stat-card group bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 hover:shadow-2xl active:scale-95 sm:hover:scale-105 animate-scale-in touch-manipulation"
             style={{ animationDelay: '100ms' }}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <Users className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg sm:rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <ArrowUpRight className="h-4 w-4 text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <p className="text-sm text-gray-600 font-medium mb-1">Suppliers</p>
-            <p className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 sm:mb-1">Suppliers</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 mb-0.5 sm:mb-1">
               {stats.totalSuppliers}
             </p>
             <p className="text-xs text-blue-500 group-hover:underline">View all →</p>
@@ -301,17 +487,17 @@ const Dashboard = () => {
         {/* Transactions Card */}
         <button
           onClick={() => navigate('/transactions')}
-          className="stat-card group bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:shadow-2xl hover:scale-105 animate-scale-in"
+          className="stat-card group bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:shadow-2xl active:scale-95 sm:hover:scale-105 animate-scale-in touch-manipulation"
           style={{ animationDelay: '200ms' }}
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
-              <Receipt className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg sm:rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <ArrowUpRight className="h-4 w-4 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <p className="text-sm text-gray-600 font-medium mb-1">Transactions</p>
-          <p className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
+          <p className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 sm:mb-1">Transactions</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 mb-0.5 sm:mb-1">
             {stats.totalTransactions}
           </p>
           <p className="text-xs text-green-500 group-hover:underline">View all →</p>

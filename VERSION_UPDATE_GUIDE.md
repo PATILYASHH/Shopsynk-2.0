@@ -2,13 +2,7 @@
 
 This guide explains how to update the version information across the Shopsynk application.
 
-## Current Version: 1.4.5 - minor bug fixes and UI improve
-
-## Files to Update When Releasing a New Version:on Update Guide
-
-This guide explains how to update the version information across the Shopsynk application.
-
-## Current Version: 1.3
+## Current Version: 1.4.6 - AI Smart Spend Parsing & Mobile Responsive
 
 ## Files to Update When Releasing a New Version:
 

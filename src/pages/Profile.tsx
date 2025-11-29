@@ -63,12 +63,66 @@ const Profile = () => {
   })
   const [ownersMessage, setOwnersMessage] = useState('')
 
+  // User mode state
+  const [userMode, setUserMode] = useState<'business' | 'personal'>('business')
+  const [isChangingMode, setIsChangingMode] = useState(false)
+  const [modeMessage, setModeMessage] = useState('')
+
   useEffect(() => {
     fetchUserStats()
     loadGoogleDriveSettings()
     loadBackupHistory()
     loadBusinessOwners()
+    loadUserMode()
   }, [user])
+
+  const loadUserMode = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('mode')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!error && data) {
+        setUserMode(data.mode)
+      }
+    } catch (error) {
+      console.error('Error loading user mode:', error)
+    }
+  }
+
+  const handleModeChange = async (newMode: 'business' | 'personal') => {
+    if (!user) return
+
+    setIsChangingMode(true)
+    setModeMessage('')
+
+    try {
+      const { error } = await supabase
+        .from('user_preferences')
+        .update({ mode: newMode })
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setUserMode(newMode)
+      setModeMessage(`Successfully switched to ${newMode} mode!`)
+      
+      // Dispatch event to reload layout
+      window.dispatchEvent(new Event('settingsChanged'))
+
+      // Clear message after 3 seconds
+      setTimeout(() => setModeMessage(''), 3000)
+    } catch (error) {
+      console.error('Error changing mode:', error)
+      setModeMessage('Failed to change mode. Please try again.')
+    } finally {
+      setIsChangingMode(false)
+    }
+  }
 
   const loadBusinessOwners = async () => {
     if (!user) return
@@ -509,6 +563,95 @@ const Profile = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Account Mode Settings */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <Settings className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Account Mode</h2>
+            <p className="text-sm text-gray-600">Choose how you want to use Shopsynk</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4 mb-4">
+          <button
+            onClick={() => !isChangingMode && handleModeChange('business')}
+            disabled={isChangingMode}
+            className={`p-4 rounded-xl border-2 transition-all text-left ${
+              userMode === 'business'
+                ? 'border-blue-500 bg-blue-50 shadow-md'
+                : 'border-gray-200 hover:border-blue-300'
+            } ${isChangingMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <div className={`p-2 rounded-lg ${userMode === 'business' ? 'bg-blue-500' : 'bg-blue-100'}`}>
+                  <Users className={`h-5 w-5 ${userMode === 'business' ? 'text-white' : 'text-blue-600'}`} />
+                </div>
+                <span className="font-semibold text-gray-900">Business Mode</span>
+              </div>
+              {userMode === 'business' && (
+                <div className="bg-blue-500 rounded-full p-1">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-600 mb-2">
+              Full features including supplier management, person tracking, and personal spends
+            </p>
+            <div className="flex flex-wrap gap-1">
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Suppliers ✓</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Persons ✓</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Spends ✓</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => !isChangingMode && handleModeChange('personal')}
+            disabled={isChangingMode}
+            className={`p-4 rounded-xl border-2 transition-all text-left ${
+              userMode === 'personal'
+                ? 'border-purple-500 bg-purple-50 shadow-md'
+                : 'border-gray-200 hover:border-purple-300'
+            } ${isChangingMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <div className={`p-2 rounded-lg ${userMode === 'personal' ? 'bg-purple-500' : 'bg-purple-100'}`}>
+                  <User className={`h-5 w-5 ${userMode === 'personal' ? 'text-white' : 'text-purple-600'}`} />
+                </div>
+                <span className="font-semibold text-gray-900">Personal Mode</span>
+              </div>
+              {userMode === 'personal' && (
+                <div className="bg-purple-500 rounded-full p-1">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-600 mb-2">
+              Simplified for personal finance tracking without business complexity
+            </p>
+            <div className="flex flex-wrap gap-1">
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Suppliers ✗</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Persons ✓</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Spends ✓</span>
+            </div>
+          </button>
+        </div>
+
+        {modeMessage && (
+          <div className={`p-3 rounded-lg ${
+            modeMessage.includes('Success') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+          }`}>
+            <p className={`text-sm ${modeMessage.includes('Success') ? 'text-green-800' : 'text-red-800'}`}>
+              {modeMessage}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Business Owners Management */}

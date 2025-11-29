@@ -21,6 +21,7 @@ import {
 
 const Transactions = () => {
   const { user } = useAuth()
+  const [userMode, setUserMode] = useState<'business' | 'personal'>('business')
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loanTransactions, setLoanTransactions] = useState<LoanTransaction[]>([])
   const [spends, setSpends] = useState<Spend[]>([])
@@ -29,12 +30,37 @@ const Transactions = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [activeTab, setActiveTab] = useState<'suppliers' | 'persons' | 'spends'>('suppliers')
+  const [activeTab, setActiveTab] = useState<'suppliers' | 'persons' | 'spends'>('persons')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [showDropdown, setShowDropdown] = useState<string | null>(null)
 
   useEffect(() => {
+    const loadUserMode = async () => {
+      if (!user) return
+
+      try {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('mode')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!error && data) {
+          setUserMode(data.mode)
+          // Set default tab based on mode
+          if (data.mode === 'personal') {
+            setActiveTab('persons')
+          } else {
+            setActiveTab('suppliers')
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user mode:', error)
+      }
+    }
+
+    loadUserMode()
     fetchData()
   }, [user])
 
@@ -313,52 +339,56 @@ const Transactions = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transactions</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Transactions</h1>
           <p className="text-gray-600 text-sm">Track all your business transactions</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('suppliers')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'suppliers'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <Users className="h-4 w-4 inline mr-2" />
-            Suppliers
-          </button>
-          <button
-            onClick={() => setActiveTab('persons')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'persons'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <User className="h-4 w-4 inline mr-2" />
-            Persons
-          </button>
-          <button
-            onClick={() => setActiveTab('spends')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'spends'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <DollarSign className="h-4 w-4 inline mr-2" />
-            Spends
-          </button>
-        </nav>
+      <div className="border-b border-gray-200 mb-4 sm:mb-6">
+        <div className="overflow-x-auto">
+          <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-max px-1">
+            {userMode === 'business' && (
+              <button
+                onClick={() => setActiveTab('suppliers')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'suppliers'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="h-4 w-4 inline mr-2" />
+                Suppliers
+              </button>
+            )}
+            <button
+              onClick={() => setActiveTab('persons')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === 'persons'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <User className="h-4 w-4 inline mr-2" />
+              Persons
+            </button>
+            <button
+              onClick={() => setActiveTab('spends')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === 'spends'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <DollarSign className="h-4 w-4 inline mr-2" />
+              Spends
+            </button>
+          </nav>
+        </div>
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -366,16 +396,16 @@ const Transactions = () => {
             placeholder="Search transactions..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="pl-10 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+            className="w-full sm:w-auto pl-9 pr-10 py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white cursor-pointer"
           >
             <option value="all">All Types</option>
             {activeTab === 'suppliers' ? (
@@ -420,24 +450,25 @@ const Transactions = () => {
           </div>
         ) : (
           filteredTransactions.map((transaction) => (
-            <div key={transaction.id} className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3 flex-1 min-w-0">
-                  <div className="flex-shrink-0 mt-1">
+            <div key={transaction.id} className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0 mt-0.5 sm:mt-1">
                     {getTransactionIcon(transaction.type, transaction.transactionType)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-medium text-gray-900 truncate">
+                    {/* Mobile Layout: Stack name and badge vertically */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 mb-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">
                           {transaction.transactionType === 'supplier' 
                             ? transaction.supplier?.name 
                             : transaction.transactionType === 'person'
                             ? transaction.person?.name
                             : transaction.description}
                         </h3>
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full font-medium flex-shrink-0 ${
                           transaction.transactionType === 'supplier'
                             ? 'bg-blue-100 text-blue-700'
                             : transaction.transactionType === 'person'
@@ -451,7 +482,7 @@ const Transactions = () => {
                             : 'Spend'}
                         </span>
                       </div>
-                      <p className={`font-semibold text-lg ${
+                      <p className={`font-semibold text-base sm:text-lg flex-shrink-0 ${
                         (transaction.transactionType === 'supplier' && transaction.type === 'new_purchase') ||
                         (transaction.transactionType === 'person' && transaction.type === 'Gives')
                           ? 'text-red-600' : 'text-green-600'
@@ -462,21 +493,23 @@ const Transactions = () => {
                       </p>
                     </div>
                     
-                    <p className="text-sm text-gray-600 mb-1">{getTransactionTypeLabel(transaction.type, transaction.transactionType)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1">{getTransactionTypeLabel(transaction.type, transaction.transactionType)}</p>
                     
                     {transaction.description && (
-                      <p className="text-sm text-gray-500 mb-2 line-clamp-2">{transaction.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 mb-2 line-clamp-2">{transaction.description}</p>
                     )}
                     
-                    <div className="flex items-center justify-between text-xs text-gray-400">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-gray-400">
                       <div className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {transaction.transactionType === 'spend' 
-                          ? formatDate(transaction.date) 
-                          : formatDate(transaction.created_at)}
+                        <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span className="truncate">
+                          {transaction.transactionType === 'spend' 
+                            ? formatDate(transaction.date) 
+                            : formatDate(transaction.created_at)}
+                        </span>
                       </div>
                       {transaction.transactionType !== 'spend' && transaction.owner?.owner_name && (
-                        <span className="text-blue-600 font-medium">
+                        <span className="text-blue-600 font-medium truncate">
                           by {transaction.owner.owner_name}
                         </span>
                       )}

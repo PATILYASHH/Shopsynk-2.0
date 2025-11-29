@@ -1,6 +1,6 @@
 {
   "name": "shopsynk",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "private": true,
   "description": "<div align=\"center\">",
   "homepage": "https://github.com/PATILYASHH/Shopsynk-2.0#readme",
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.0",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.56.0",
     "@types/react-router-dom": "^5.3.3",
     "date-fns": "^4.1.0",

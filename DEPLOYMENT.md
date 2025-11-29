@@ -25,9 +25,13 @@ Go to Site Settings → Environment Variables and add:
 ```
 VITE_SUPABASE_URL=your_actual_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key
+VITE_GEMINI_API_KEY=your_google_gemini_api_key_optional
 ```
 
-⚠️ **Important**: Use your actual Supabase credentials from your project dashboard.
+⚠️ **Important**: 
+- Use your actual Supabase credentials from your project dashboard
+- VITE_GEMINI_API_KEY is optional but required for AI Smart Spend Parsing feature
+- Get your Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 ### 4. Deploy
 - Click "Deploy site"
@@ -66,14 +70,17 @@ VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key
 - Check spelling matches exactly: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
 - Redeploy after adding variables
 
-## 📱 Features Included
+## 📱 Features Included (v1.4.6)
 - ✅ Business Owners Management
 - ✅ Transaction Tracking with Owner Attribution  
 - ✅ Supplier Management
 - ✅ Outstanding Payments Dashboard
 - ✅ Google Drive Backup Integration
-- ✅ Responsive Design
+- ✅ **AI Smart Spend Parsing** - Natural language expense input
+- ✅ **Mobile-First Responsive Design** - Optimized for all devices
+- ✅ **Persistent AI Preferences** - Settings saved across sessions
 - ✅ Authentication with Supabase
+- ✅ Progressive Web App (PWA) Support
 
 ## 🎉 Post-Deployment
 1. Test all functionality on the live site

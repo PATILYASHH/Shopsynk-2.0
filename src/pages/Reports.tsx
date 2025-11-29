@@ -51,6 +51,7 @@ interface ReportData {
 
 const Reports = () => {
   const { user } = useAuth()
+  const [userMode, setUserMode] = useState<'business' | 'personal'>('business')
   const [reportData, setReportData] = useState<ReportData>({
     totalPurchases: 0,
     totalPayments: 0,
@@ -62,7 +63,7 @@ const Reports = () => {
     personBreakdown: [],
     spendBreakdown: [],
     pieChartData: [],
-    categoryFilter: 'suppliers'
+    categoryFilter: 'persons'
   })
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loanTransactions, setLoanTransactions] = useState<any[]>([])
@@ -80,6 +81,34 @@ const Reports = () => {
     setDateFrom(thirtyDaysAgo.toISOString().split('T')[0])
     setDateTo(today.toISOString().split('T')[0])
   }, [])
+
+  useEffect(() => {
+    const loadUserMode = async () => {
+      if (!user) return
+
+      try {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('mode')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!error && data) {
+          setUserMode(data.mode)
+          // Set default filter based on mode
+          if (data.mode === 'personal') {
+            setReportData(prev => ({ ...prev, categoryFilter: 'persons' }))
+          } else {
+            setReportData(prev => ({ ...prev, categoryFilter: 'suppliers' }))
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user mode:', error)
+      }
+    }
+
+    loadUserMode()
+  }, [user])
 
   useEffect(() => {
     if (dateFrom && dateTo) {
@@ -642,20 +671,22 @@ const Reports = () => {
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => {
-              setReportData(prev => ({ ...prev, categoryFilter: 'suppliers' }))
-              fetchReportData('suppliers')
-            }}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              reportData.categoryFilter === 'suppliers'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <Users className="h-4 w-4 inline mr-2" />
-            Suppliers
-          </button>
+          {userMode === 'business' && (
+            <button
+              onClick={() => {
+                setReportData(prev => ({ ...prev, categoryFilter: 'suppliers' }))
+                fetchReportData('suppliers')
+              }}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                reportData.categoryFilter === 'suppliers'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Users className="h-4 w-4 inline mr-2" />
+              Suppliers
+            </button>
+          )}
           <button
             onClick={() => {
               setReportData(prev => ({ ...prev, categoryFilter: 'persons' }))
@@ -688,30 +719,31 @@ const Reports = () => {
       </div>
 
       {/* Date Range Filter */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div className="flex flex-col space-y-3">
           <div className="flex items-center space-x-2">
-            <Filter className="h-5 w-5 text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Filters</h2>
           </div>
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+          <div className="flex flex-col space-y-3">
             <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <label className="text-sm font-medium text-gray-700 min-w-max">From:</label>
+              <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <label className="text-sm font-medium text-gray-700 w-12 flex-shrink-0">From:</label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700 min-w-max">To:</label>
+              <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <label className="text-sm font-medium text-gray-700 w-12 flex-shrink-0">To:</label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 border border-gray-300 rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -725,7 +757,7 @@ const Reports = () => {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {reportData.categoryFilter === 'suppliers' && (
               <>
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
@@ -819,14 +851,14 @@ const Reports = () => {
             
             {reportData.pieChartData.length > 0 ? (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-                <div className="h-64 sm:h-80">
+                <div className="h-60 sm:h-72 lg:h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
                         data={reportData.pieChartData}
                         cx="50%"
                         cy="50%"
-                        outerRadius={80}
+                        outerRadius="70%"
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -847,22 +879,22 @@ const Reports = () => {
                 
                 {/* Top Suppliers/Persons List */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                     {reportData.categoryFilter === 'suppliers' ? 'Top Suppliers' :
                      reportData.categoryFilter === 'persons' ? 'Top Persons' :
                      'Top Spend Categories'}
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {reportData.pieChartData.slice(0, 8).map((item) => (
-                      <div key={item.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
+                      <div key={item.name} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center min-w-0 flex-1">
                           <div 
-                            className="w-4 h-4 rounded-full mr-3" 
+                            className="w-3 h-3 sm:w-4 sm:h-4 rounded-full mr-2 sm:mr-3 flex-shrink-0" 
                             style={{ backgroundColor: item.color }}
                           ></div>
-                          <span className="font-medium text-gray-900">{item.name}</span>
+                          <span className="font-medium text-gray-900 text-sm sm:text-base truncate">{item.name}</span>
                         </div>
-                        <span className="text-gray-600 font-semibold">{formatCurrency(item.value)}</span>
+                        <span className="text-gray-600 font-semibold text-sm sm:text-base ml-2 flex-shrink-0">{formatCurrency(item.value)}</span>
                       </div>
                     ))}
                   </div>

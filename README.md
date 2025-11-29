@@ -35,11 +35,24 @@ ShopSynk 2.0 is a **modern, real-time supplier management platform** built for b
 
 ##  **Features That Make Us Different**
 
+### 🤖 **AI-Powered Smart Input** (v1.4.6)
+- **Natural Language Parsing** - "bought phone 2000 rs" → Auto-extracts title, amount & category
+- **Smart Amount Detection** - Supports 2k, ₹2000, Rs.2000, 2000rs formats
+- **Intelligent Categorization** - AI suggests from 12+ categories
+- **Persistent Preferences** - Settings saved automatically
+- **Offline Fallback** - Rule-based parsing when AI unavailable
+
 ###  **Real-Time Everything**
 - **Instant notifications** when team members add transactions
 - **Live updates** across all connected devices
 - **Push notifications** even when the app is closed
 - **Multi-user collaboration** with ownership tracking
+
+### 📱 **Mobile-First Design** (v1.4.6)
+- **Fully Responsive** - Optimized for phones, tablets & desktop
+- **Touch-Friendly** - 44px minimum tap targets
+- **Smart Layouts** - Stack on mobile, side-by-side on desktop
+- **Active Feedback** - Visual response to touch interactions
 
 ###  **Progressive Web App**
 - **Offline functionality** - works without internet
@@ -70,11 +83,13 @@ ShopSynk 2.0 is a **modern, real-time supplier management platform** built for b
 - ** PWA** - Progressive Web App capabilities
 - ** Vite** - Lightning-fast build tool
 
-### Backend
+### Backend & AI
 - ** Supabase** - PostgreSQL database with real-time subscriptions
 - ** Row Level Security** - Database-level authorization
 - ** Push Notifications** - Web Push API integration
 - ** Real-time subscriptions** - Live data updates
+- **🤖 Google Gemini AI** - Natural language processing for expense parsing
+- ** Intelligent Categorization** - ML-powered spend classification
 
 ### DevOps & Tools
 - ** npm/yarn** - Package management
