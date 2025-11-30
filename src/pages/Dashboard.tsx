@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { generateFinancialInsights, FinancialInsight } from '../lib/geminiService'
+import LoadingSpinner from '../components/LoadingSpinner'
 import ModeSelection from '../components/ModeSelection'
 import PersonalDashboard from '../components/PersonalDashboard'
 
@@ -373,12 +374,7 @@ const Dashboard = () => {
   if (loading || checkingMode) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
-          </div>
-        </div>
+        <LoadingSpinner />
       </div>
     )
   }

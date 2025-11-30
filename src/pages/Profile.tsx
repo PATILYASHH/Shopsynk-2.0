@@ -6,6 +6,7 @@ import { GoogleDriveService, GoogleDriveConfig } from '../lib/googleDrive'
 import { BusinessOwnersService, BusinessOwner, OwnerStats } from '../lib/businessOwners'
 import NotificationCleanupPanel from '../components/NotificationCleanupPanel'
 import PushNotificationSettings from '../components/PushNotificationSettings'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { 
   User, 
   Mail,
@@ -464,11 +465,7 @@ const Profile = () => {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   return (

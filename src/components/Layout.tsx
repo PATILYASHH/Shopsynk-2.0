@@ -317,9 +317,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   // Dynamic mobile navigation based on current page
+  // When on a page, move that icon to center and replace with +
   const getBaseNavigation = useMemo(() => {
     // In personal mode, create navigation without suppliers
     if (userMode === 'personal') {
+      // When on spends page: Dashboard, Persons, [+], Reports, More
+      // Move Spends to center, replace with +, swap with Persons
+      if (isOnSpendsPage) {
+        return getFilteredNavigation([
+          { name: 'Dashboard', path: '/dashboard', icon: Home },
+          { name: 'Persons', path: '/persons', icon: User },
+          { name: 'Spends', path: '/spends', icon: DollarSign }, // Will be replaced by +
+          { name: 'Reports', path: '/reports', icon: FileText },
+          { name: 'More', path: '#', icon: MoreVertical },
+        ])
+      }
+      
+      // When on persons page: Dashboard, Spends, [+], Reports, More
+      // Move Persons to center, replace with +, swap with Spends
+      if (isOnPersonsPage) {
+        return getFilteredNavigation([
+          { name: 'Dashboard', path: '/dashboard', icon: Home },
+          { name: 'Spends', path: '/spends', icon: DollarSign },
+          { name: 'Persons', path: '/persons', icon: User }, // Will be replaced by +
+          { name: 'Reports', path: '/reports', icon: FileText },
+          { name: 'More', path: '#', icon: MoreVertical },
+        ])
+      }
+      
+      // Default personal mode: Dashboard, Spends, Persons, Reports, More
       const personalNav = [
         { name: 'Dashboard', path: '/dashboard', icon: Home },
         { name: 'Spends', path: '/spends', icon: DollarSign },
@@ -331,6 +357,43 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
 
     // Business mode navigation (includes suppliers)
+    // When on spends page: Dashboard, Suppliers, [+], Persons, More
+    // Move Spends to center, replace with +
+    if (isOnSpendsPage) {
+      return getFilteredNavigation([
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
+        { name: 'Suppliers', path: '/suppliers', icon: Users },
+        { name: 'Spends', path: '/spends', icon: DollarSign }, // Will be replaced by +
+        { name: 'Persons', path: '/persons', icon: User },
+        { name: 'More', path: '#', icon: MoreVertical },
+      ])
+    }
+
+    // When on persons page: Dashboard, Spends, [+], Suppliers, More
+    // Move Persons to center, replace with +
+    if (isOnPersonsPage) {
+      return getFilteredNavigation([
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
+        { name: 'Spends', path: '/spends', icon: DollarSign },
+        { name: 'Persons', path: '/persons', icon: User }, // Will be replaced by +
+        { name: 'Suppliers', path: '/suppliers', icon: Users },
+        { name: 'More', path: '#', icon: MoreVertical },
+      ])
+    }
+
+    // When on suppliers page: Dashboard, Persons, [+], Spends, More
+    // Move Suppliers to center, replace with +
+    if (isOnSuppliersPage) {
+      return getFilteredNavigation([
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
+        { name: 'Persons', path: '/persons', icon: User },
+        { name: 'Suppliers', path: '/suppliers', icon: Users }, // Will be replaced by +
+        { name: 'Spends', path: '/spends', icon: DollarSign },
+        { name: 'More', path: '#', icon: MoreVertical },
+      ])
+    }
+
+    // Default business mode: Dashboard, Spends, Suppliers, Persons, More
     const defaultNav = getFilteredNavigation([
       { name: 'Dashboard', path: '/dashboard', icon: Home },
       { name: 'Spends', path: '/spends', icon: DollarSign },
@@ -339,54 +402,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       { name: 'More', path: '#', icon: MoreVertical },
     ])
 
-    // When on spends page: Dashboard, Suppliers, Spends, Persons, More
-    if (isOnSpendsPage) {
-      return getFilteredNavigation([
-        { name: 'Dashboard', path: '/dashboard', icon: Home },
-        { name: 'Suppliers', path: '/suppliers', icon: Users },
-        { name: 'Spends', path: '/spends', icon: DollarSign },
-        { name: 'Persons', path: '/persons', icon: User },
-        { name: 'More', path: '#', icon: MoreVertical },
-      ])
-    }
-
-    // When on persons page: Dashboard, Spends, Persons, Suppliers, More
-    if (isOnPersonsPage) {
-      return getFilteredNavigation([
-        { name: 'Dashboard', path: '/dashboard', icon: Home },
-        { name: 'Spends', path: '/spends', icon: DollarSign },
-        { name: 'Persons', path: '/persons', icon: User },
-        { name: 'Suppliers', path: '/suppliers', icon: Users },
-        { name: 'More', path: '#', icon: MoreVertical },
-      ])
-    }
-
-    // When on suppliers page: keep default navigation, just show + at suppliers position
-    if (isOnSuppliersPage) {
-      return defaultNav
-    }
-
     return defaultNav
   }, [getFilteredNavigation, userMode, isOnSpendsPage, isOnPersonsPage, isOnSuppliersPage])
 
   const baseNavigation = getBaseNavigation
 
   // Determine which position should have the plus button
+  // Plus button always at index 2 (center) when on active page
   let plusButtonIndex = -1
   let plusButtonType = ''
 
   // Only show supplier plus button in business mode
   if ((isOnSuppliersPage || isOnSupplierDetailPage) && userMode === 'business') {
-    plusButtonIndex = 2 // Suppliers position (index 2 in default navigation)
+    plusButtonIndex = 2 // Center position
     plusButtonType = 'Add Supplier'
   } else if (isOnPersonsPage) {
-    plusButtonIndex = 2 // Persons position (index 2 in rearranged navigation)
+    plusButtonIndex = 2 // Center position
     plusButtonType = 'Add Person'
   } else if (isOnPersonDetailPage) {
-    plusButtonIndex = 2 // Persons position (index 2 in rearranged navigation)
+    plusButtonIndex = 2 // Center position
     plusButtonType = 'Add Transaction'
   } else if (isOnSpendsPage) {
-    plusButtonIndex = 2 // Spends position (index 2 in rearranged navigation)
+    plusButtonIndex = 2 // Center position
     plusButtonType = 'Add Spend'
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
@@ -9,7 +9,7 @@ import {
   Calendar,
   Users,
   Receipt,
-  PieChart,
+  PieChart as LucidePieChart,
   ArrowUpRight,
   Eye,
   EyeOff,
@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   Lightbulb
 } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { generateFinancialInsights, FinancialInsight } from '../lib/geminiService'
+import LoadingSpinner from './LoadingSpinner'
 
 interface DashboardWidget {
   id: string
@@ -40,11 +42,13 @@ interface PersonalStats {
   spendTrend: 'up' | 'down' | 'stable'
   monthlyAverage: number
   categoryBreakdown: { category: string; amount: number; percentage: number }[]
+  spendingDates: Set<string>
 }
 
 const PersonalDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const todayRef = useRef<HTMLDivElement>(null)
   const [stats, setStats] = useState<PersonalStats>({
     totalSpends: 0,
     monthlySpends: 0,
@@ -54,7 +58,8 @@ const PersonalDashboard = () => {
     topCategory: { name: 'None', amount: 0 },
     spendTrend: 'stable',
     monthlyAverage: 0,
-    categoryBreakdown: []
+    categoryBreakdown: [],
+    spendingDates: new Set()
   })
   const [widgets, setWidgets] = useState<DashboardWidget[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,13 +74,19 @@ const PersonalDashboard = () => {
     { id: 'monthly_average', title: 'Monthly Average', enabled: true, position: 3, size: 'small' },
     { id: 'persons_summary', title: 'Persons Summary', enabled: true, position: 4, size: 'medium' },
     { id: 'category_breakdown', title: 'Spending by Category', enabled: true, position: 5, size: 'large' },
-    { id: 'spend_trend', title: 'Spending Trend', enabled: true, position: 6, size: 'medium' },
+    { id: 'spending_streak', title: 'Spending Streak', enabled: true, position: 6, size: 'large' },
     { id: 'ai_insights', title: 'AI Financial Insights', enabled: true, position: 7, size: 'large' }
   ]
 
   useEffect(() => {
     loadDashboardData()
   }, [user])
+
+  useEffect(() => {
+    if (todayRef.current) {
+      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    }
+  }, [stats])
 
   const loadDashboardData = async () => {
     if (!user) return
@@ -109,6 +120,11 @@ const PersonalDashboard = () => {
         .eq('user_id', user.id)
 
       const spends = spendsData || []
+      const spendingDates = new Set<string>()
+      spends.forEach(spend => {
+        const date = new Date(spend.date).toDateString()
+        spendingDates.add(date)
+      })
       const now = new Date()
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -196,7 +212,8 @@ const PersonalDashboard = () => {
         topCategory,
         spendTrend,
         monthlyAverage,
-        categoryBreakdown: categoryBreakdown.slice(0, 6)
+        categoryBreakdown: categoryBreakdown.slice(0, 6),
+        spendingDates
       })
 
       // Load AI insights
@@ -395,13 +412,16 @@ const PersonalDashboard = () => {
         )
 
       case 'category_breakdown':
+        const COLORS = [
+          '#a78bfa', '#f472b6', '#34d399', '#fbbf24', '#60a5fa', '#f87171', '#38bdf8', '#facc15', '#4ade80', '#c084fc'
+        ];
         return (
           <div key={widget.id} className={`${sizeClasses[widget.size]} card-modern`}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                    <PieChart className="h-5 w-5 text-white" />
+                    <LucidePieChart className="h-5 w-5 text-white" />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Spending by Category</h2>
                 </div>
@@ -413,26 +433,29 @@ const PersonalDashboard = () => {
                   <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </button>
               </div>
-              <div className="space-y-3">
+              <div className="flex justify-center">
                 {stats.categoryBreakdown.length > 0 ? (
-                  stats.categoryBreakdown.map((cat, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="font-semibold text-gray-900">{cat.category}</p>
-                          <p className="text-sm font-bold text-purple-600">
-                            ₹{Math.round(cat.amount).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-purple-500 to-pink-600 h-2 rounded-full transition-all"
-                            style={{ width: `${cat.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <ResponsiveContainer width={220} height={220}>
+                    <PieChart>
+                      <Pie
+                        data={stats.categoryBreakdown}
+                        dataKey="amount"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        label={false}
+                      >
+                        {stats.categoryBreakdown.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name, props) => [
+                        `₹${Math.round(value).toLocaleString()}`,
+                        props.payload.category
+                      ]} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 ) : (
                   <p className="text-gray-500 text-center py-4">No spending data yet</p>
                 )}
@@ -441,33 +464,53 @@ const PersonalDashboard = () => {
           </div>
         )
 
-      case 'spend_trend':
+      case 'spending_streak':
+        const currentYear = new Date().getFullYear()
+        const startOfYear = new Date(currentYear, 0, 1)
+        const endOfYear = new Date(currentYear + 1, 0, 1)
+        const allDays = []
+        for (let d = new Date(startOfYear); d < endOfYear; d.setDate(d.getDate() + 1)) {
+          allDays.push(new Date(d))
+        }
+        const startDayOfWeek = startOfYear.getDay() // 0=Sun, 1=Mon, ..., 6=Sat
+        const gridCells = new Array(371).fill(null)
+        allDays.forEach((day, i) => {
+          const row = (startDayOfWeek + i) % 7
+          const col = Math.floor((startDayOfWeek + i) / 7)
+          const index = row * 53 + col
+          gridCells[index] = day
+        })
         return (
           <div key={widget.id} className={`${sizeClasses[widget.size]} card-modern`}>
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className={`p-3 rounded-xl ${
-                  stats.spendTrend === 'up' ? 'bg-red-100' : 
-                  stats.spendTrend === 'down' ? 'bg-green-100' : 'bg-blue-100'
-                }`}>
-                  {stats.spendTrend === 'up' && <TrendingUp className="h-6 w-6 text-red-600" />}
-                  {stats.spendTrend === 'down' && <TrendingDown className="h-6 w-6 text-green-600" />}
-                  {stats.spendTrend === 'stable' && <TrendingUp className="h-6 w-6 text-blue-600" />}
+                <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+                  <Calendar className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Spending Trend</h2>
-                  <p className="text-sm text-gray-600">Compared to last month</p>
+                  <h2 className="text-xl font-bold text-gray-900">Spending Streak</h2>
+                  <p className="text-sm text-gray-600">{currentYear} Activity</p>
                 </div>
               </div>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4">
-                <p className="text-lg font-semibold text-gray-900">
-                  {stats.spendTrend === 'up' && '📈 Spending is increasing'}
-                  {stats.spendTrend === 'down' && '📉 Spending is decreasing'}
-                  {stats.spendTrend === 'stable' && '➡️ Spending is stable'}
-                </p>
-                <p className="text-sm text-gray-600 mt-2">
-                  Top category: <span className="font-semibold">{stats.topCategory.name}</span> (₹{Math.round(stats.topCategory.amount).toLocaleString()})
-                </p>
+              <div className="max-h-64 overflow-y-auto">
+                <div className="grid grid-rows-7 gap-1" style={{ gridTemplateColumns: 'repeat(53, 8px)' }}>
+                  {gridCells.map((day, index) => {
+                    if (!day) {
+                      return <div key={index} className="w-2 h-2 rounded-sm"></div>
+                    }
+                    const dateStr = day.toDateString()
+                    const hasSpending = stats.spendingDates.has(dateStr)
+                    const isToday = day.toDateString() === new Date().toDateString()
+                    return (
+                      <div
+                        key={index}
+                        ref={isToday ? todayRef : undefined}
+                        className={`w-2 h-2 rounded-sm border ${isToday ? 'border-red-300 border-1' : 'border-transparent'} ${hasSpending ? 'bg-green-500' : 'bg-gray-200'}`}
+                        title={`${day.toDateString()}: ${isToday ? 'Today' : hasSpending ? 'Spent' : 'No spending'}`}
+                      ></div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -522,38 +565,42 @@ const PersonalDashboard = () => {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   return (
     <div className="space-y-6 animate-slide-up-fade">
-      {/* Header with Gradient */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 rounded-2xl p-6 shadow-2xl">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative z-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Welcome back!</h1>
-            <p className="text-purple-100">Here's your personal finance overview</p>
-          </div>
-          <button
-            onClick={() => setShowCustomizer(!showCustomizer)}
-            className="p-3 bg-white/20 hover:bg-white/30 rounded-xl transition-all backdrop-blur-sm"
-            title="Customize Dashboard"
-          >
-            <Settings className="h-6 w-6 text-white" />
-          </button>
+      {/* Compact Summary Section */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col items-center">
+          <Calendar className="h-6 w-6 text-blue-600 mb-1" />
+          <span className="text-xs text-gray-500">This Month</span>
+          <span className="text-lg font-bold text-blue-700">₹{Math.round(stats.monthlySpends).toLocaleString()}</span>
         </div>
-        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
-        <div className="absolute -left-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col items-center">
+          <Receipt className="h-6 w-6 text-green-600 mb-1" />
+          <span className="text-xs text-gray-500">Today</span>
+          <span className="text-lg font-bold text-green-700">₹{Math.round(stats.todaySpends).toLocaleString()}</span>
+        </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex flex-col items-center">
+          <DollarSign className="h-6 w-6 text-purple-600 mb-1" />
+          <span className="text-xs text-gray-500">All Time</span>
+          <span className="text-lg font-bold text-purple-700">₹{Math.round(stats.totalSpends).toLocaleString()}</span>
+        </div>
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 flex flex-col items-center">
+          <Users className="h-6 w-6 text-teal-600 mb-1" />
+          <span className="text-xs text-gray-500">Persons</span>
+          <div className="flex gap-2 mt-1">
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-gray-500">You owe</span>
+              <span className="text-md font-bold text-red-600">{stats.personsOwed}</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-gray-500">Owe you</span>
+              <span className="text-md font-bold text-green-600">{stats.personsOwing}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Widget Customizer */}
@@ -594,9 +641,11 @@ const PersonalDashboard = () => {
         </div>
       )}
 
-      {/* Widgets Grid */}
+      {/* Widgets Grid (exclude summary stat widgets) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {widgets.map(widget => renderWidget(widget))}
+        {widgets
+          .filter(widget => !['monthly_spends', 'today_spends', 'total_spends', 'persons_summary'].includes(widget.id))
+          .map(widget => renderWidget(widget))}
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { supabase, Spend } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -406,9 +407,7 @@ const Spends = () => {
 
       {/* Spends List */}
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <LoadingSpinner />
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {filteredAndSortedSpends.length > 0 ? (

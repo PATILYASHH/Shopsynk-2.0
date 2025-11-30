@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { BackupService } from '../lib/backupService'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { 
   HardDrive, 
   Download, 
@@ -291,12 +292,7 @@ const DataStorage = () => {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-gray-600">Loading storage information...</span>
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   return (
